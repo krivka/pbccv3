@@ -48,4 +48,4 @@ sdccconf.h
 .svn/
 # and finally, build results
 bin/
-*.[oa]
+*.[oa]*.dep
