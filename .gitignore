@@ -1,0 +1,33 @@
+# ignore all sdcc files and folders
+.version
+COPYING
+ChangeLog
+Makefile.common.in
+Makefile.in
+README
+all.vcxproj
+all.vcxproj.filters
+bin/
+clean.mk
+conf.mk
+config.guess
+config.sub
+config.vcxproj
+configure
+configure.in
+configure_vc.awk
+debugger/
+device/
+doc/
+install-sh
+main_in.mk
+sdas/
+sdcc.sln
+sdcc.spec
+sdcc_vc.h.in
+sdccconf_in.h
+sim/
+support/
+src/*
+# except for our port
+!src/pblaze
