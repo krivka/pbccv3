@@ -34,6 +34,7 @@ src/*
 # won't commit glue backups
 *.bak-glue
 # neither configure generated files
+autom4te.cache
 Makefile
 Makefile.common
 config.log
@@ -42,3 +43,9 @@ main.mk
 ports.all
 ports.build
 sdccconf.h
+# editor and other cvs information as well...
+.kdev4/
+.svn/
+# and finally, build results
+bin/
+*.[oa]
