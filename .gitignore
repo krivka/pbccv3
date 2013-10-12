@@ -34,8 +34,9 @@ src/*
 # won't commit glue backups
 *.bak-glue
 # neither configure generated files
+*.dep
 autom4te.cache
-Makefile
+*Makefile
 Makefile.common
 config.log
 config.status
@@ -48,4 +49,4 @@ sdccconf.h
 .svn/
 # and finally, build results
 bin/
-*.[oa]*.dep
+*.[oa]
