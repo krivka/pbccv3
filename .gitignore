@@ -31,3 +31,14 @@ support/
 src/*
 # except for our port
 !src/pblaze
+# won't commit glue backups
+*.bak-glue
+# neither configure generated files
+Makefile
+Makefile.common
+config.log
+config.status
+main.mk
+ports.all
+ports.build
+sdccconf.h
