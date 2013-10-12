@@ -10,4 +10,4 @@ Decompress the whole SDCC tree directly into the repository, to have SDCC's src 
 
 Then run glue.sh with SDCC_HOME environment variable set to the repository root.
 
-After that, it's just good old ./configure and make 
+After that, it's just good old autoconf; ./configure; make 

@@ -137,7 +137,6 @@ glue_configure_in() {
             print ""
             print "if test $OPT_DISABLE_PBLAZE = 0; then"
             print "  AC_CONFIG_FILES([src/pblaze/Makefile])"
-            print "  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/pblaze/Makefile])"
             print "fi"
             state = 5;
         } else if (state == 5 && /[ \t]*ENABLED Ports:[ \t]*/) {
@@ -155,10 +154,10 @@ content_port_h="$(glue_port_h)"
 content_sdccmain_c=$(glue_sdccmain_c)
 content_configure_in=$(glue_configure_in)
 echo Creating backups...
-cp $SDCC_HOME/src/port.h $SDCC_HOME/src/port.h.bak-glue
-cp $SDCC_HOME/src/SDCCmain.c $SDCC_HOME/src/SDCCmain.c.bak-glue
-cp $SDCC_HOME/configure.in $SDCC_HOME/configure.in.bak-glue
+cp "$SDCC_HOME/src/port.h" "$SDCC_HOME/src/port.h.bak-glue"
+cp "$SDCC_HOME/src/SDCCmain.c" $SDCC_HOME/src/SDCCmain.c.bak-glue
+cp "$SDCC_HOME/configure.in" "$SDCC_HOME/configure.in.bak-glue"
 echo Saving changes to configuration files... 
-echo "$content_port_h" > $SDCC_HOME/src/port.h
-echo "$content_sdccmain_c" > $SDCC_HOME/src/SDCCmain.c
-echo "$content_configure_in" > $SDCC_HOME/configure.in
+echo "$content_port_h" > "$SDCC_HOME/src/port.h"
+echo "$content_sdccmain_c" > "$SDCC_HOME/src/SDCCmain.c"
+echo "$content_configure_in" > "$SDCC_HOME/configure.in"
