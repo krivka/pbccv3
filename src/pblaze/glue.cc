@@ -3,10 +3,13 @@
 
 #include "common.h"
 #include "dbuf_string.h"
+#include "SDCCglue.h"
+
+#include <time.h>
 
 symbol *interrupts[INTNO_MAX + 1];
 
-void printIval(symbol *, sym_link *, initList *, struct dbuf_s *, bool check);
+//void printIval (symbol *, sym_link *, initList *, struct dbuf_s *, bool check);
 set *pblaze_publics = NULL; /* public variables */
 set *pblaze_externs = NULL; /* Variables that are declared as extern */
 
@@ -37,7 +40,7 @@ static void pblaze_emitDebugSym(struct dbuf_s *oBuf, symbol * sym)
 /*-----------------------------------------------------------------*/
 /* pblaze_printChar - formats and prints a characater string with DB      */
 /*-----------------------------------------------------------------*/
-void pblaze_printChar(struct dbuf_s *oBuf, char *s, int plen)
+void pblaze_printChar(struct dbuf_s *oBuf, const char *s, int plen)
 {
     int i;
     int len = plen;
@@ -96,7 +99,7 @@ static void pblaze_emitRegularMap(memmap * map, bool addPublics, bool arFlag)
             dbuf_tprintf(&map->oBuf, "\t!org\n", 0);
     }
 
-    for (sym = setFirstItem(map->syms); sym; sym = setNextItem(map->syms)) {
+    for (sym = (symbol *) setFirstItem(map->syms); sym; sym = (symbol *) setNextItem(map->syms)) {
         symbol *newSym = NULL;
 
         /* if extern then add it into the extern list */
@@ -164,7 +167,7 @@ static void pblaze_emitRegularMap(memmap * map, bool addPublics, bool arFlag)
                     ++noAlloc;
                     resolveIvalSym(sym->ival, sym->type);
                     ++pblaze_noInit;
-                    printIval(sym, sym->type, sym->ival, &tmpBuf, TRUE);
+                    //printIval(sym, sym->type, sym->ival, &tmpBuf, TRUE);
                     --pblaze_noInit;
                     --noAlloc;
                     dbuf_destroy(&tmpBuf);
@@ -249,7 +252,7 @@ void pblaze_emitStaticSeg(memmap * map, struct dbuf_s *oBuf)
     /* fprintf(out, "\t.area\t%s\n", map->sname); */
 
     /* for all variables in this segment do */
-    for (sym = setFirstItem(map->syms); sym; sym = setNextItem(map->syms)) {
+    for (sym = (symbol *) setFirstItem(map->syms); sym; sym = (symbol *) setNextItem(map->syms)) {
         /* if it is "extern" then do nothing */
         if (IS_EXTERN(sym->etype))
             continue;
@@ -284,7 +287,7 @@ void pblaze_emitStaticSeg(memmap * map, struct dbuf_s *oBuf)
                 dbuf_printf(oBuf, "%s:\n", sym->rname);
                 ++noAlloc;
                 resolveIvalSym(sym->ival, sym->type);
-                printIval(sym, sym->type, sym->ival, oBuf, map != xinit);
+                //printIval(sym, sym->type, sym->ival, oBuf, map != xinit);
                 --noAlloc;
                 /* if sym is a simple string and sym->ival is a string,
                 WE don't need it anymore */
@@ -351,7 +354,7 @@ void pblaze_createInterruptVect(struct dbuf_s *vBuf)
     pblaze_mainf->block = 0;
 
     /* only if the main function exists */
-    if (!(pblaze_mainf = findSymWithLevel(SymbolTab, pblaze_mainf))) {
+    if (!(pblaze_mainf = (symbol *) findSymWithLevel(SymbolTab, pblaze_mainf))) {
         if (!options.cc_only && !noAssemble && !options.c1mode)
             werror(E_NO_MAIN);
         return;
@@ -406,7 +409,7 @@ void pblaze_printPublics(FILE * afile)
     fprintf(afile, "; Public variables in this module\n");
     fprintf(afile, "%s", pblaze_iComments2);
 
-    for (sym = setFirstItem(pblaze_publics); sym; sym = setNextItem(pblaze_publics))
+    for (sym = (symbol *) setFirstItem(pblaze_publics); sym; sym = (symbol *) setNextItem(pblaze_publics))
     tfprintf(afile, "\t!global\n", sym->rname);
 }
 
@@ -431,10 +434,10 @@ static void pblaze_emitOverlay(struct dbuf_s *aBuf)
 
 
     /* for each of the sets in the overlay segment do */
-    for (ovrset = setFirstItem(ovrSetSets); ovrset; ovrset = setNextItem(ovrSetSets)) {
+    for (ovrset = (set *) setFirstItem(ovrSetSets); ovrset; ovrset = (set *) setNextItem(ovrSetSets)) {
         symbol *sym;
 
-        for (sym = setFirstItem(ovrset); sym; sym = setNextItem(ovrset)) {
+        for (sym = (symbol *) setFirstItem(ovrset); sym; sym = (symbol *) setNextItem(ovrset)) {
             /* if extern then it is in the pblaze_publics table: do nothing */
             if (IS_EXTERN(sym->etype))
             continue;
