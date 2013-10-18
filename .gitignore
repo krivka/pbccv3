@@ -50,3 +50,4 @@ sdccconf.h
 # and finally, build results
 bin/
 *.[oa]
+pbccv3.kdev4
