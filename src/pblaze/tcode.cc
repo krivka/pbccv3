@@ -27,6 +27,8 @@ Instruction::TwoOperandInstruction::TwoOperandInstruction(const Operand *op1, co
 }
 
 void Instruction::TwoOperandInstruction::printInstruction() const {
+    if (!m_op1 || !m_op2)
+        throw "Two operand instruction tried to use a NULL operand";
     fprintf(stderr, "\t%s%s\t", name(), m_carry ? "CY" : "");
     m_op1->printOperand();
     fprintf(stderr, ",\t");
@@ -43,6 +45,7 @@ void Instruction::Conditional::printInstruction() const {
         case Carry:    suffix = " C,";  break;
         case NotCarry: suffix = " NC,"; break;
         case Indirect: suffix = "@ ";   break;
+        default: throw "Conditional instruction type not supported"; break;
     }
     fprintf(stderr, "\t%s%s\t%s", name(), suffix, m_type == Indirect ? "(" : "");
     if (m_op1)
