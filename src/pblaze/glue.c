@@ -606,34 +606,34 @@ void pblaze_do_glue(void)
     dbuf_write_and_destroy(&statsg->oBuf, asmFile);
 
     if (port->general.glue_up_main && pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type)) {
-    /* This code is generated in the post-static area.
-     * This area is guaranteed to follow the static area
-     * by the ugly shucking and jiving about 20 lines ago.
-     */
+        /* This code is generated in the post-static area.
+        * This area is guaranteed to follow the static area
+        * by the ugly shucking and jiving about 20 lines ago.
+        */
 
-    //fprintf(asmFile, "\tLOAD\tsF, $%02x\n", MEMSIZE - 1);
-    fprintf(asmFile, "\tJUMP\t__sdcc_program_startup\n");
+        //fprintf(asmFile, "\tLOAD\tsF, $%02x\n", MEMSIZE - 1);
+        fprintf(asmFile, "\tJUMP\t__sdcc_program_startup\n");
     }
 
     fprintf(asmFile, "%s" "; Home\n" "%s", pblaze_iComments2, pblaze_iComments2);
     dbuf_write_and_destroy(&home->oBuf, asmFile);
 
     if (pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type)) {
-    /* entry point @ start of HOME */
-    fprintf(asmFile, "__sdcc_program_startup:\n");
+        /* entry point @ start of HOME */
+        fprintf(asmFile, "__sdcc_program_startup:\n");
 
-    /* put in jump or call to main */
-    if (TRUE) { // N/A: TODO: options.mainreturn
-        fprintf(asmFile, "\tJUMP\t_main\n");    /* needed? */
-        if (!options.noCcodeInAsm)
-        fprintf(asmFile, ";\treturn from main will return to caller\n");
-    } else {
-        fprintf(asmFile, "\tCALL\t_main\n");
-        if (!options.noCcodeInAsm)
-        fprintf(asmFile, ";\treturn from main will lock up\n");
-        fprintf(asmFile, "__sdcc_loop:\n");
-        fprintf(asmFile, "\tJUMP\t__sdcc_loop\n");
-    }
+        /* put in jump or call to main */
+        if (TRUE) { // N/A: TODO: options.mainreturn
+            fprintf(asmFile, "\tJUMP\t_main\n");    /* needed? */
+            if (!options.noCcodeInAsm)
+            fprintf(asmFile, ";\treturn from main will return to caller\n");
+        } else {
+            fprintf(asmFile, "\tCALL\t_main\n");
+            if (!options.noCcodeInAsm)
+            fprintf(asmFile, ";\treturn from main will lock up\n");
+            fprintf(asmFile, "__sdcc_loop:\n");
+            fprintf(asmFile, "\tJUMP\t__sdcc_loop\n");
+        }
     }
     /* copy over code */
     fprintf(asmFile, "%s", pblaze_iComments2);
@@ -642,7 +642,7 @@ void pblaze_do_glue(void)
     dbuf_write_and_destroy(&code->oBuf, asmFile);
 
     if (port->genAssemblerEnd) {
-    port->genAssemblerEnd(asmFile);
+        port->genAssemblerEnd(asmFile);
     }
 
     /* copy the interrupt vector table */

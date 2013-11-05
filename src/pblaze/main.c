@@ -177,6 +177,16 @@ int pblaze_oclsExpense(struct memmap *oclass) {
     return 1; // TODO: would be worth finding out what it actually does
 }
 
+int pblaze_assemble() {
+    return 0;
+}
+
+/* $3 is replaced by assembler.debug_opts resp. port->assembler.plain_opts */
+static const char *_asmCmd[] =
+{
+  "pblazasm", "$l", "$3", "$2", "$1.asm", NULL
+};
+
 
 /*
  * TODO: When finishing, delete all the direct member initializers to make the 
@@ -201,12 +211,12 @@ PORT pblaze_port = {
         .plain_opts                  = "-plosgff",
         .externGlobal                = 0,
         .file_ext                    = ".psm",
-        .do_assemble                 = NULL,
+        .do_assemble                 = pblaze_assemble,
     },
     .linker                      = {
         .cmd                         = NULL,
         .mcmd                        = NULL,
-        .do_link                     = NULL,
+        .do_link                     = pblaze_assemble,
         .rel_ext                     = ".rel",
         .needLinkerScript            = 1,
         .crt                         = NULL,  // new in SDCC 3.2/3.3
