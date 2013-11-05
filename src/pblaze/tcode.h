@@ -62,7 +62,10 @@ public:
     virtual const char *name() const = 0;
     virtual void printInstruction() const = 0;
 
+    // The classes are in the same order as in the KCPSM manual
+protected:
     class TwoOperandInstruction;
+public: // inheriting from TwoOperandInstruction
         class Load;
         class Star;
         class And;
@@ -73,23 +76,28 @@ public:
         class Test;
         class Compare;
 
-    class SL;
-    class RL;
-    class SR;
-    class RR;
-    class Regbank;
-    class Input;
-    class Output;
-    class Store;
-    class Fetch;
-    class Interrupt;
-    class ReturnI;
+public: // direct children
+        class SL;
+        class RL;
+        class SR;
+        class RR;
+        class Regbank;
+        class Input;
+        class Output;
+        class Store;
+        class Fetch;
+        class Interrupt;
+        class ReturnI;
 
+protected:
     class Conditional;
+public: // inheriting from Conditional
         class Jump;
         class Call;
         class Return;
-    class Hwbuild;
+
+public: // direct children
+        class Hwbuild;
 
 };
 
@@ -207,21 +215,26 @@ protected:
 
 class Instruction::Jump : public Conditional {
 public:
-    explicit Jump(Conditional::Type type, const Label *op1) : Conditional(type, op1, NULL) {}
-    explicit Jump(const Register *op1, const Register *op2) : Conditional(Conditional::Indirect, op1, op2) {}
+    explicit Jump(Conditional::Type type, const Label *op1)
+            : Conditional(type, op1, NULL) {}
+    explicit Jump(const Register *op1, const Register *op2)
+            : Conditional(Conditional::Indirect, op1, op2) {}
     inline virtual const char *name() const { return "JUMP"; }
 };
 
 class Instruction::Call : public Conditional {
 public:
-    explicit Call(Conditional::Type type, const Label *op1) : Conditional(type, op1, NULL) {}
-    explicit Call(const Register *op1, const Register *op2) : Conditional(Conditional::Indirect, op1, op2) {}
+    explicit Call(Conditional::Type type, const Label *op1)
+            : Conditional(type, op1, NULL) {}
+    explicit Call(const Register *op1, const Register *op2)
+            : Conditional(Conditional::Indirect, op1, op2) {}
     inline virtual const char *name() const { return "CALL"; }
 };
 
 class Instruction::Return : public Conditional {
 public:
-    explicit Return(Conditional::Type type) : Conditional(type, NULL, NULL) {}
+    explicit Return(Conditional::Type type)
+            : Conditional(type, NULL, NULL) {}
     inline virtual const char *name() const { return "RETURN"; }
 };
 
