@@ -24,6 +24,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <vector>
+#include <map>
+
+class TCode {
+public:
+    static TCode *instance() {
+        if (!_self)
+            _self = new TCode();
+        return _self;
+    }
+    bool insertInstruction(Instruction *instr);
+
+    bool insertLabel(const char *name);
+    Instruction *requestLabel(const char *name);
+private:
+    TCode() {}
+    static TCode *_self;
+
+    std::vector<Instruction *> m_instructions;
+    std::map<const char *, Label *> m_labels;
+};
+
 class Operand {
 public:
     enum Type {
@@ -62,7 +84,7 @@ private:
 
 //TBD
 class Operand::Constant : public Operand {
-
+    
 };
 
 class Operand::Port : public Operand {

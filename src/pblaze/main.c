@@ -24,28 +24,25 @@
 
 #include "glue.h"
 
+void processIcode(iCode *ic);
+
 #define SEND_REG_COUNT 4
 
 void pblaze_init(void) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
 }
 
 bool pblaze_parseOption(int *pargc, char **argv, int *i) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
     return false;
     // currently does nothing as no options are allowed
 }
 
 void pblaze_initPaths(void) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
 }
 
 void pblaze_finaliseOptions(void) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
 }
 
 void pblaze_setDefaultOptions(void) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
 }
 
 #define NREGS 16
@@ -54,18 +51,19 @@ operand *register_vars[NREGS] = { 0 };
 
 void pblaze_assignRegisters(ebbIndex * ebbi)
 {
-    fprintf(stderr, "%s\n", __FUNCTION__);
 	eBBlock **ebbs = ebbi->bbOrder;
 	int count = ebbi->count;
 	int i;
 	for (i = 0; i < count; i++) {
-		fprintf(stderr, "Block %d:\n", i);
+		//fprintf(stderr, "Block %d:\n", i);
 		iCode *ic = ebbs[i]->sch;
         printiCChain(ic, stderr);
         char linebuf[256]; // FIXME
         size_t c_copied = 0; //FIXME
         size_t i; //FIXME
         while (ic) {
+            processIcode(ic);
+#if 0
             switch (ic->op) {
                 case FUNCTION:
                     fprintf(stderr, "Would generate a function %s\n", OP_SYMBOL(IC_LEFT(ic))->name);
@@ -113,13 +111,13 @@ void pblaze_assignRegisters(ebbIndex * ebbi)
                     fprintf(stderr, "%d!\n", ic->op);
                     break;
             }
+#endif
             ic = ic->next;
         }
 	}
 }
 
 const char *pblaze_getRegName(const struct reg_info *reg) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
     /*
     if (reg)
         return reg->name;
@@ -128,31 +126,25 @@ const char *pblaze_getRegName(const struct reg_info *reg) {
 }
 
 void pblaze_genAssemblerPreamble(FILE *of) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
 }
 
 void pblaze_genAssemblerEnd(FILE *of) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
 }
 
 int pblaze_genIVT(struct dbuf_s *oBuf, symbol **intTable, int intCount) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
     return 1; // TODO
 }
 
 void pblaze_genInitStartup(FILE *of) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
 }
 
 static int regParmFlg = 0;
 
 void pblaze_reset_regparms(void) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
     regParmFlg = 0;
 }
 
 int pblaze_reg_parm(struct sym_link *link, bool reentrant) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
     if (regParmFlg < SEND_REG_COUNT) {
         int size;
         if ((size = getSize(link)) > (SEND_REG_COUNT - regParmFlg)) {
@@ -168,12 +160,10 @@ int pblaze_reg_parm(struct sym_link *link, bool reentrant) {
 }
 
 bool pblaze_hasExtBitOp(int op, int size) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
     return false; // TODO: would be worth finding out what it actually does
 }
 
 int pblaze_oclsExpense(struct memmap *oclass) {
-    fprintf(stderr, "%s\n", __FUNCTION__);
     return 1; // TODO: would be worth finding out what it actually does
 }
 

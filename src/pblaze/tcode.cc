@@ -18,6 +18,74 @@
  */
 
 #include "tcode.h"
+#include <SDCCicode.h>
+#include <SDCCsymt.h>
+#include <SDCCy.h>
+
+TCode *TCode::_self = NULL;
+
+extern "C" {
+    bool processIcode(iCode* ic) {
+        fprintf(stderr, "Yay, processIcode was called!\n");
+        switch (ic->op) {
+            case FUNCTION:
+            case LABEL:
+                TCode::instance()->insertLabel(OP_SYMBOL(IC_LEFT(ic))->name);
+                break;
+            case CALL:
+                // TODO parameters
+                Instruction *instr = TCode::instance()->requestLabel(IC_LEFT(ic))->rname[0] ? OP_SYMBOL(IC_LEFT(ic))->rname : OP_SYMBOL(IC_LEFT(ic))->name));                
+                break;
+            case GOTO:
+                fprintf(stderr, "Goto\n");
+                break;
+            case ENDFUNCTION:
+                fprintf(stderr, "Endfunction\n");
+                // TODO can't tell if this is correct now
+                // TODO returning twice
+                // fallthrough
+            case RETURN:
+                // no value returning
+                fprintf(stderr, "Return\n");
+                strcpy(linebuf, "RETURN");
+                printLine(newLineNode(linebuf), codeOutBuf);
+                break;
+#if 0
+            case '=':
+                // won't care about initialization - parser handles this
+                // so far only 1B variables available
+                // FIXME very very bad register allocation
+                for (i = 0; i < NREGS; i++) {
+                    if (!register_vars[i]) {
+                        register_vars[i] = IC_LEFT(ic);
+                        sprintf(linebuf, "LOAD s%1x, $%x", i, ulFromVal(OP_VALUE(IC_RIGHT(ic))));
+                        printLine(newLineNode(linebuf), codeOutBuf);
+                        break;
+                    }
+                }
+                fprintf(stderr, "Assignment\n");
+                break;
+#endif
+            default:
+                break;
+        }
+        return false;
+    }
+}
+
+bool TCode::insertInstruction(Instruction* instr) {
+    m_instructions.push_back(instr);
+}
+
+bool TCode::insertLabel(const char* name) {
+    if (m_labels.find(name) != m_labels.end()) {
+        // hm, na tohle ted uz nemam, musim nejak vyresit jak najit, jestli to jmeno uz byla nebo nebyla pouzite, TBD later
+    }
+    // CONTINUE HERE
+    //m_labels
+    
+}
+
 
 Instruction::TwoOperandInstruction::TwoOperandInstruction(const Operand *op1, const Operand *op2, bool withCarry)
 : m_op1(op1)
