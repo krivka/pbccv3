@@ -27,6 +27,13 @@
 #include <vector>
 #include <map>
 
+#include "common.h"
+
+class Instruction;
+class Operand;
+class Label;
+class Register;
+
 class TCode {
 public:
     static TCode *instance() {
@@ -43,21 +50,21 @@ private:
     static TCode *_self;
 
     std::vector<Instruction *> m_instructions;
-    std::map<const char *, Label *> m_labels;
+    std::map<const char *, Label *> m_promisedLabels;
 };
 
 class Operand {
 public:
     enum Type {
-        None,
-        InstructionAddress,
-        InstructionPointer,
-        Constant8b,
-        Port8b,
-        Port4b,
-        MemoryOrPort,
-        Register,
-        RegisterInactive
+        _None,
+        _InstructionAddress,
+        _InstructionPointer,
+        _Constant8b,
+        _Port8b,
+        _Port4b,
+        _MemoryOrPort,
+        _Register,
+        _RegisterInactive
     };
     virtual void printOperand() const = 0;
     virtual Type type() const = 0;
@@ -74,7 +81,7 @@ public:
         BANK_B
     };
     Register(Bank bank, uint8_t no) : m_bank(bank), m_number(no), m_free(true) {}
-    virtual Type type() const { return Operand::Register; }
+    virtual Type type() const { return Operand::_Register; }
     virtual void printOperand() const;
 private:
     bool m_bank;
@@ -139,7 +146,7 @@ public: // direct children
 class Label : public Operand, public Instruction {
 public:
     Label(const char *name) : m_name(name) {}
-    virtual Type type() const { return Operand::InstructionAddress; }
+    virtual Type type() const { return Operand::_InstructionAddress; }
     virtual const char *name() const { return m_name; }
     virtual void printInstruction() const { fprintf(stderr, "%s:\n", m_name); }
     virtual void printOperand() const { fprintf(stderr, "%s", m_name); }
@@ -150,7 +157,7 @@ private:
 /**
  * This class assumes the following things:
  * 1) Every of the subclassing instructions does have two operands, in which the first one is a register.
- *    The second one is either a register or a constant.
+ *    The second one is  either a register or a constant.
  * 2) Carry: The instruction is in its carry version when the class is constructed with withCarry = true.
  *    Subclassing to set only the operands results in not using the carry option at all.
  *    This basically means arithmetic operations will want the third argument but logical and move operations won't.
@@ -274,6 +281,17 @@ public:
 
 class Instruction::Shift : public Instruction {
 public:
+    enum Direction {
+        Right,
+        Left
+    };
+    enum Style {
+        Fill0,
+        Fill1,
+        FillMSB,
+        FillCarry,
+        Rotate
+    };
     Shift(const Operand::Register *op1, Direction dir, Style style = Fill0)
             : Instruction(), m_op1(op1), m_direction(dir), m_style(style) {}
     virtual const char *name() const {
@@ -294,17 +312,6 @@ public:
                 case Rotate: return "RL";
             }
     }
-    enum Direction {
-        Right,
-        Left
-    };
-    enum Style {
-        Fill0,
-        Fill1,
-        FillMSB,
-        FillCarry,
-        Rotate
-    };
 private:
     const Operand::Register *m_op1;
     Direction m_direction;
@@ -324,7 +331,7 @@ public:
             : TwoOperandInstruction(op1, op2) {}
     explicit Output(const Operand::Constant *op1, const Operand::Port *op2)
             : TwoOperandInstruction(op1, op2) {}
-    virtual const char *name() const { return m_op2->type() == Operand::Port4b ? "OUTPUTK" : "OUTPUT"; }
+    virtual const char *name() const { return m_op2->type() == Operand::_Port4b ? "OUTPUTK" : "OUTPUT"; }
 };
 
 class Instruction::Store : public TwoOperandInstruction {

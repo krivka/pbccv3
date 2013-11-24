@@ -55,63 +55,9 @@ void pblaze_assignRegisters(ebbIndex * ebbi)
 	int count = ebbi->count;
 	int i;
 	for (i = 0; i < count; i++) {
-		//fprintf(stderr, "Block %d:\n", i);
 		iCode *ic = ebbs[i]->sch;
-        printiCChain(ic, stderr);
-        char linebuf[256]; // FIXME
-        size_t c_copied = 0; //FIXME
-        size_t i; //FIXME
         while (ic) {
             processIcode(ic);
-#if 0
-            switch (ic->op) {
-                case FUNCTION:
-                    fprintf(stderr, "Would generate a function %s\n", OP_SYMBOL(IC_LEFT(ic))->name);
-                    sprintf(linebuf, "_%s:", OP_SYMBOL(IC_LEFT(ic))->name);
-                    printLine(newLineNode(linebuf), codeOutBuf);
-                    break;
-                case LABEL:
-                    fprintf(stderr, "Label\n");
-                    break;
-                case CALL:
-                    // TODO calling conventions
-                    fprintf(stderr, "Call: %s\n", (OP_SYMBOL(IC_LEFT(ic))->rname[0] ? OP_SYMBOL(IC_LEFT(ic))->rname : OP_SYMBOL(IC_LEFT(ic))->name));
-                    sprintf(linebuf, "CALL %s", (OP_SYMBOL(IC_LEFT(ic))->rname[0] ? OP_SYMBOL(IC_LEFT(ic))->rname : OP_SYMBOL(IC_LEFT(ic))->name));
-                    printLine(newLineNode(linebuf), codeOutBuf);
-                    break;
-                case GOTO:
-                    fprintf(stderr, "Goto\n");
-                    break;
-                case ENDFUNCTION:
-                    fprintf(stderr, "Endfunction\n");
-                    // TODO can't tell if this is correct now
-                    // TODO returning twice
-                    // fallthrough
-                case RETURN:
-                    // no value returning
-                    fprintf(stderr, "Return\n");
-                    strcpy(linebuf, "RETURN");
-                    printLine(newLineNode(linebuf), codeOutBuf);
-                    break;
-                case '=':
-                    // won't care about initialization - parser handles this
-                    // so far only 1B variables available
-                    // FIXME very very bad register allocation
-                    for (i = 0; i < NREGS; i++) {
-                        if (!register_vars[i]) {
-                            register_vars[i] = IC_LEFT(ic);
-                            sprintf(linebuf, "LOAD s%1x, $%x", i, ulFromVal(OP_VALUE(IC_RIGHT(ic))));
-                            printLine(newLineNode(linebuf), codeOutBuf);
-                            break;
-                        }
-                    }
-                    fprintf(stderr, "Assignment\n");
-                    break;
-                default:
-                    fprintf(stderr, "%d!\n", ic->op);
-                    break;
-            }
-#endif
             ic = ic->next;
         }
 	}

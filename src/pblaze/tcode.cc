@@ -18,59 +18,122 @@
  */
 
 #include "tcode.h"
+#include "sdcc.h"
 #include <SDCCicode.h>
 #include <SDCCsymt.h>
 #include <SDCCy.h>
 
 TCode *TCode::_self = NULL;
 
-extern "C" {
-    bool processIcode(iCode* ic) {
-        fprintf(stderr, "Yay, processIcode was called!\n");
-        switch (ic->op) {
-            case FUNCTION:
-            case LABEL:
-                TCode::instance()->insertLabel(OP_SYMBOL(IC_LEFT(ic))->name);
+extern "C" bool processIcode(iCode* _ic) {
+    PBCC::ICode *ic = static_cast<PBCC::ICode*>(_ic);
+    switch (ic->op) {
+        case '=':
+            //fprintf(stderr, "; %s = %s\n", OP_SYMBOL(IC_RESULT(ic))->rname, OP_VALUE(IC_RIGHT(ic))->sym->);
+            //fprintf(stderr, "%s\n", ic->getRight()->getSymbol()->rname);
+            break;
+        case FUNCTION:
+            fprintf(stderr, "; Function\n");
+            fprintf(stderr, "\t%s\n", ic->getResult()->getSymbol()->rname);
+            break;
+        case LABEL:
+            if (IC_LABEL(ic) == entryLabel)
                 break;
-            case CALL:
-                // TODO parameters
-                Instruction *instr = TCode::instance()->requestLabel(IC_LEFT(ic))->rname[0] ? OP_SYMBOL(IC_LEFT(ic))->rname : OP_SYMBOL(IC_LEFT(ic))->name));                
-                break;
-            case GOTO:
-                fprintf(stderr, "Goto\n");
-                break;
-            case ENDFUNCTION:
-                fprintf(stderr, "Endfunction\n");
-                // TODO can't tell if this is correct now
-                // TODO returning twice
-                // fallthrough
-            case RETURN:
-                // no value returning
-                fprintf(stderr, "Return\n");
-                strcpy(linebuf, "RETURN");
-                printLine(newLineNode(linebuf), codeOutBuf);
-                break;
-#if 0
-            case '=':
-                // won't care about initialization - parser handles this
-                // so far only 1B variables available
-                // FIXME very very bad register allocation
-                for (i = 0; i < NREGS; i++) {
-                    if (!register_vars[i]) {
-                        register_vars[i] = IC_LEFT(ic);
-                        sprintf(linebuf, "LOAD s%1x, $%x", i, ulFromVal(OP_VALUE(IC_RIGHT(ic))));
-                        printLine(newLineNode(linebuf), codeOutBuf);
-                        break;
-                    }
-                }
-                fprintf(stderr, "Assignment\n");
-                break;
-#endif
-            default:
-                break;
-        }
-        return false;
+            fprintf(stderr, "; Label\n");
+            //fprintf(stderr, "\t%s\n", ic->getLabel()->name);
+            break;
+        case CALL:
+            fprintf(stderr, "; Call\n");
+            break;
+        case GOTO:
+            fprintf(stderr, "; Goto\n");
+            break;
+        case ENDFUNCTION:
+            fprintf(stderr, "; Endfunction\n");
+            break;
+        case RETURN:
+            fprintf(stderr, "; Return\n");
+            fprintf(stderr, "\tRETURN\n");
+            break;
+        case '+':
+            fprintf(stderr, "; Add\n");
+            break;
+        case SEND:
+            fprintf(stderr, "; Send\n");
+            break;
+/*
+        case PCALL:
+            break;
+        case IPUSH:
+            break;
+        case IPOP:
+            break;
+        case INLINEASM:
+            break;
+        case CAST:
+            break;
+        case '!':
+            break;
+        case '~':
+            break;
+        case UNARYMINUS:
+            break;
+        case '-':
+            break;
+        case '*':
+            break;
+        case '/':
+            break;
+        case '%':
+            break;
+        case '>':
+            break;
+        case '<':
+            break;
+        case LE_OP:
+            break;
+        case GE_OP:
+            break;
+        case NE_OP:
+            break;
+        case EQ_OP:
+            break;
+        case AND_OP:
+            break;
+        case OR_OP:
+            break;
+        case '^':
+            break;
+        case '|':
+            break;
+        case BITWISEAND:
+            break;
+        case RRC:
+            break;
+        case RLC:
+            break;
+        case GETHBIT:
+            break;
+        case LEFT_OP:
+            break;
+        case RIGHT_OP:
+            break;
+        case GET_VALUE_AT_ADDRESS:
+            break;
+        case IFX:
+            break;
+        case ADDRESS_OF:
+            break;
+        case JUMPTABLE:
+            break;
+        case RECEIVE:
+            break;
+            */
+        default:
+            fprintf(stderr, "Something else: %d\n", ic->op);
+            break;
     }
+    return false;
 }
 
 bool TCode::insertInstruction(Instruction* instr) {
@@ -78,14 +141,28 @@ bool TCode::insertInstruction(Instruction* instr) {
 }
 
 bool TCode::insertLabel(const char* name) {
-    if (m_labels.find(name) != m_labels.end()) {
-        // hm, na tohle ted uz nemam, musim nejak vyresit jak najit, jestli to jmeno uz byla nebo nebyla pouzite, TBD later
+    auto it = m_promisedLabels.find(name);
+    if (it != m_promisedLabels.end()) {
+        m_instructions.push_back(it->second);
+        m_promisedLabels.erase(it);
     }
-    // CONTINUE HERE
-    //m_labels
-    
+    else {
+        m_instructions.push_back(new Label(name));
+    }
 }
 
+Instruction* TCode::requestLabel(const char* name) {
+    // TODO this may not be completely... optimal
+    auto it = m_promisedLabels.find(name);
+    for (const Instruction *i : m_instructions) {
+        auto label = static_cast<const Label *>(i);
+        if (label) {
+//             if (0 == strcmp(label->name(), name))
+//                 return label;
+        }
+    }
+    //m_promisedLabels[nam
+}
 
 Instruction::TwoOperandInstruction::TwoOperandInstruction(const Operand *op1, const Operand *op2, bool withCarry)
 : m_op1(op1)
@@ -125,6 +202,6 @@ void Instruction::Conditional::printInstruction() const {
     fprintf(stderr, "%s\n", m_type == Indirect ? ")" : "");
 }
 
-void Register::printOperand() const {
-    fprintf(stderr, "s%X", m_number);
-}
+// void Register::printOperand() const {
+//     fprintf(stderr, "s%X", m_number);
+// }

@@ -1,3 +1,5 @@
+CXXFLAGS += -std=c++11
+
 VPATH        = @srcdir@
 srcdir       = @srcdir@
 top_builddir = @top_builddir@
