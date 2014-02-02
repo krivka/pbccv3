@@ -23,6 +23,8 @@
 #include <SDCCsymt.h>
 #include <SDCCy.h>
 
+Processor *Processor::_self = nullptr;
+
 extern "C" bool processIcode(iCode* _ic) {
     PBCC::ICode *ic = static_cast<PBCC::ICode*>(_ic);
     switch (ic->op) {
