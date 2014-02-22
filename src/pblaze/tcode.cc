@@ -34,3 +34,15 @@ extern "C" bool processIcode(iCode* _ic) {
     }
     return false;
 }
+
+void Operand::moveToMemory() {
+    for (Register *r : m_regs) {
+        r->clear();
+    }
+    m_regs.clear();
+}
+
+void Operand::assign(Register* reg, int byte) {
+    m_regs.reserve(byte + 1);
+    m_regs[byte] = reg;
+}

@@ -33,19 +33,28 @@
 // Use only 11 registers for variable storage
 #define GP_REGISTERS   0x0B
 
+class Register;
+class Memory;
+class Stack;
+
 class Operand {
 public:
+    // creates a null operand to assure safety of operations
+    Operand() {
+
+    }
     Operand(std::string name, int size)
             : m_name(name)
             , m_size(size) { 
 
     }
     int size() const { return m_size; }
-    void moveToMemory() {
 
-    }
+    void moveToMemory();
+    void assign(Register *reg, int byte);
 
 private:
+    std::vector<Register*> m_regs;
     std::string m_name { };
     int m_size { 0 };
 };
@@ -61,6 +70,9 @@ public:
 
     void moveToMemory() {
         m_op->moveToMemory();
+    }
+
+    void clear() {
         m_op = nullptr;
     }
 
@@ -191,9 +203,13 @@ public:
 
     int step() const { return m_step; }
 
+    Bank *currentBank() {
+        return &m_banks[m_currBank];
+    }
+
     void allocate(Operand *op) {
         m_step++;
-        m_banks[m_currBank].allocate(op);
+        currentBank()->allocate(op);
     }
 
 private:
