@@ -38,6 +38,7 @@ extern "C" bool processIcode(iCode* _ic) {
 void Operand::moveToMemory() {
     for (Register *r : m_regs) {
         r->clear();
+        Processor::instance()->setAside(this);
     }
     m_regs.clear();
 }

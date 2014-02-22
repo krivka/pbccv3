@@ -33,6 +33,9 @@
 // Use only 11 registers for variable storage
 #define GP_REGISTERS   0x0B
 
+class op;
+class op;
+extern  s;
 class Register;
 class Memory;
 class Stack;
@@ -160,7 +163,13 @@ public:
             : m_free(size, true) {
 
     }
-    int size() const { return m_free.size(); };
+    int size() const { return m_free.size(); }
+    bool set(int pos, bool value) {
+        if (m_free.size() < pos || m_free[pos] == value)
+            return false;
+        m_free[pos] = value;
+        return true;
+    }
 
 private:
     std::vector<bool> m_free;
@@ -184,6 +193,13 @@ public:
             : m_memory(memory)
             , m_top(memory->size() - 1) {
 
+    }
+    void push(Operand *op) {
+        // TODO here we should save the position of the variable in the memory
+        for (int i = 0; i < op->size(); i++) {
+            m_memory->set(m_top, false);
+            m_top--;
+        }
     }
 
 private:
@@ -210,6 +226,10 @@ public:
     void allocate(Operand *op) {
         m_step++;
         currentBank()->allocate(op);
+    }
+
+    void setAside(Operand *op) {
+        m_aside.push(op);
     }
 
 private:
