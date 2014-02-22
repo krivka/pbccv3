@@ -33,9 +33,6 @@
 // Use only 11 registers for variable storage
 #define GP_REGISTERS   0x0B
 
-class op;
-class op;
-extern  s;
 class Register;
 class Memory;
 class Stack;
