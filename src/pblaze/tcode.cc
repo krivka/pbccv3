@@ -28,6 +28,11 @@ Processor *Processor::_self = nullptr;
 extern "C" bool processIcode(iCode* _ic) {
     PBCC::ICode *ic = static_cast<PBCC::ICode*>(_ic);
     switch (ic->op) {
+        case RIGHT_OP: {
+            Operand *op = Operand::fromInternal(ic->getLeft());
+            ShiftRight *i = new ShiftRight(op);
+            break;
+        }
         default:
             fprintf(stderr, "Something else: %d\n", ic->op);
             break;
@@ -35,12 +40,20 @@ extern "C" bool processIcode(iCode* _ic) {
     return false;
 }
 
-void Operand::moveToMemory() {
+Operand* Operand::fromInternal(PBCC::Operand* op) {
+    return new Variable();
+}
+
+void Operand::toMemory() {
     for (Register *r : m_regs) {
         r->clear();
         Processor::instance()->setAside(this);
     }
     m_regs.clear();
+}
+
+void Operand::toRegisters() {
+
 }
 
 void Operand::assign(Register* reg, int byte) {

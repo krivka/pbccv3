@@ -28,12 +28,15 @@
 #include <map>
 
 #include "common.h"
+#include "sdcc.h"
 
 #define BANK_REGISTERS 0x10
 // Use only 11 registers for variable storage
 #define GP_REGISTERS   0x0B
 
 class Register;
+class Operand;
+class Variable;
 class Memory;
 class Stack;
 
@@ -48,15 +51,28 @@ public:
             , m_size(size) { 
 
     }
+
+    static Operand *fromInternal(PBCC::Operand *op);
+
     int size() const { return m_size; }
 
-    void moveToMemory();
+    void toMemory();
+    void toRegisters();
+
     void assign(Register *reg, int byte);
 
-private:
+protected:
     std::vector<Register*> m_regs;
     std::string m_name { };
     int m_size { 0 };
+};
+
+class Variable : public Operand {
+public:
+    Variable() : Operand() { }
+
+protected:
+    static std::map<std::string, Variable*> m_variableTable;
 };
 
 class Register {
@@ -68,8 +84,8 @@ public:
         m_op = op;
     }
 
-    void moveToMemory() {
-        m_op->moveToMemory();
+    void toMemory() {
+        m_op->toMemory();
     }
 
     void clear() {
@@ -129,7 +145,7 @@ public:
         }
         if (oldest_pos != -1) {
             for (int i = 0; i < op->size(); i++) {
-                m_regs[oldest_pos + i].moveToMemory();
+                m_regs[oldest_pos + i].toMemory();
                 m_regs[oldest_pos + i].assign(op, i);
             }
             return;
@@ -141,7 +157,7 @@ public:
         // which is of course a feature we have but it's not yet implemented
         int base = rand() % (GP_REGISTERS - op->size());
         for (int i = 0; base + i < op->size(); i++) {
-            m_regs[base + i].moveToMemory();
+            m_regs[base + i].toMemory();
             m_regs[base + i].assign(op, i);
         }
     }
@@ -204,6 +220,46 @@ private:
     // this value will be here most of the time anyway 
     // but set it in the constructor too just to be sure
     int m_top { 255 };
+};
+
+class Instruction {
+public:
+    virtual void print() = 0;
+};
+
+class OperandInstruction : public Instruction {
+public:
+    virtual void print1B() = 0;
+    virtual void print2B() {
+        print1B();
+    }
+    virtual void print4B() {
+        print2B();
+    }
+
+    virtual void print() {
+        print1B();
+    }
+};
+
+class OneOperandInstruction : public OperandInstruction {
+public:
+    OneOperandInstruction(Operand *op)
+            : OperandInstruction()
+            , op1(op) { }
+    virtual void print() {
+        op1->toRegisters();
+    }
+protected:
+    Operand *op1;
+};
+
+class ShiftRight : public OneOperandInstruction {
+public:
+    ShiftRight(Operand *op) : OneOperandInstruction(op) { }
+    virtual void print1B() {
+        
+    }
 };
 
 class Processor {

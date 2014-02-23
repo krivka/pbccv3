@@ -1,3 +1,5 @@
+#ifndef _SDCC_H
+#define _SDCC_H
 
 #include "common.h"
 #include "SDCCicode.h"
@@ -47,3 +49,5 @@ namespace PBCC {
     };
     
 }
+
+#endif // _SDCC_H
