@@ -23,6 +23,10 @@
 #include <SDCCsymt.h>
 #include <SDCCy.h>
 
+#include <iostream>
+#include <string>
+#include <vector>
+
 Processor *Processor::_self = nullptr;
 
 extern "C" bool processIcode(iCode* _ic) {
@@ -38,6 +42,15 @@ extern "C" bool processIcode(iCode* _ic) {
             break;
     }
     return false;
+}
+
+std::vector<std::string> Operand::getRepresentations() const {
+    std::vector<std::string> ret;
+    for (int i = 0; i < size(); i++) {
+        if (m_regs[i])
+            ret.push_back(m_regs[i]->getRepresentation());
+        // TODO ADD MEMORY and others
+    }
 }
 
 Operand* Operand::fromInternal(PBCC::Operand* op) {
@@ -59,4 +72,17 @@ void Operand::toRegisters() {
 void Operand::assign(Register* reg, int byte) {
     m_regs.reserve(byte + 1);
     m_regs[byte] = reg;
+}
+
+void ShiftRight::print1B() {
+    for (std::string r : op1->getRepresentations()) {
+        if (Processor::instance()->carry.isClean()) {
+            std::cout << "SRA";
+        }
+        else {
+            std::cout << "SR0";
+            Processor::instance()->carry.setClean(true);
+        }
+    }
+    Processor::instance()->carry.setClean(false);
 }

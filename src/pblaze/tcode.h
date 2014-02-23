@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string>
+#include <sstream>
 #include <vector>
 #include <map>
 
@@ -60,6 +62,8 @@ public:
     void toRegisters();
 
     void assign(Register *reg, int byte);
+    
+    std::vector<std::string> getRepresentations() const;
 
 protected:
     std::vector<Register*> m_regs;
@@ -77,7 +81,7 @@ protected:
 
 class Register {
 public:
-    Register() {}
+    Register(int pos) : m_pos(pos) {}
     bool free() const { return m_op; }
 
     void assign(Operand *op, int byte) {
@@ -92,16 +96,27 @@ public:
         m_op = nullptr;
     }
 
+    std::string getRepresentation() const {
+        std::stringstream ss;
+        ss << "s" << m_pos;
+        return ss.str();
+    }
+
     int age() const { return m_age; }
 
 private:
     Operand *m_op { nullptr };
+    int m_pos { -1 };
     int m_age { 0 };
 };
 
 class Bank {
 public:
-    Bank() {}
+    Bank() {
+        for (int i = 0; i < BANK_REGISTERS; i++) {
+            m_regs.emplace(m_regs.end(), Register(i));
+        }
+    }
     void allocate(Operand *op) {
         // first, try finding a completely free spot of this size
         for (int i = 0; i < GP_REGISTERS; i++) {
@@ -167,7 +182,7 @@ public:
         BANK_B
     };
 private:
-    Register m_regs[BANK_REGISTERS];
+    std::vector<Register> m_regs;
 };
 
 class Memory {
@@ -257,9 +272,7 @@ protected:
 class ShiftRight : public OneOperandInstruction {
 public:
     ShiftRight(Operand *op) : OneOperandInstruction(op) { }
-    virtual void print1B() {
-        
-    }
+    virtual void print1B();
 };
 
 class Processor {
@@ -284,6 +297,20 @@ public:
     void setAside(Operand *op) {
         m_aside.push(op);
     }
+    
+    class Flag {
+    public:
+        bool isClean() const {
+            return m_clean;
+        }
+        void setClean(bool s) {
+            m_clean = s;
+        }
+    private:
+        bool m_clean { true };
+    };
+
+    Flag carry;
 
 private:
     Processor() {}
