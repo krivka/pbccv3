@@ -6,7 +6,7 @@
 #include "../SDCCicode.h"
 #include <SDCCsymt.h>
 
-namespace PBCC {
+namespace SDCC {
 
     class SymLink : public ::sym_link {
     public:

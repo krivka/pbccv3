@@ -30,7 +30,7 @@
 Processor *Processor::_self = nullptr;
 
 extern "C" bool processIcode(iCode* _ic) {
-    PBCC::ICode *ic = static_cast<PBCC::ICode*>(_ic);
+    SDCC::ICode *ic = static_cast<SDCC::ICode*>(_ic);
     switch (ic->op) {
         case RIGHT_OP: {
             Operand *op = Operand::fromInternal(ic->getLeft());
@@ -53,7 +53,7 @@ std::vector<std::string> Operand::getRepresentations() const {
     }
 }
 
-Operand* Operand::fromInternal(PBCC::Operand* op) {
+Operand* Operand::fromInternal(SDCC::Operand* op) {
     return new Variable();
 }
 

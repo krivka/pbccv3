@@ -54,7 +54,7 @@ public:
 
     }
 
-    static Operand *fromInternal(PBCC::Operand *op);
+    static Operand *fromInternal(SDCC::Operand *op);
 
     int size() const { return m_size; }
 
