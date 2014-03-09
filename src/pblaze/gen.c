@@ -45,8 +45,7 @@ extern int allocInfo;
 
 extern struct dbuf_s *codeOutBuf;
 
-void
-bailOut(char *mesg) {
+void bailOut(char *mesg) {
     fprintf(stderr, "%s: bailing out\n", mesg);
     exit(1);
 }
@@ -55,8 +54,7 @@ bailOut(char *mesg) {
 /*-----------------------------------------------------------------*/
 /* newAsmop - creates a new asmOp                                  */
 /*-----------------------------------------------------------------*/
-static asmop *
-newAsmop(short type) {
+static asmop *newAsmop(short type) {
     asmop *aop;
 
     aop = Safe_calloc(1, sizeof(asmop));
@@ -64,8 +62,7 @@ newAsmop(short type) {
     return aop;
 }
 
-char *
-aopTypeName(asmop * aop) {
+char *aopTypeName(asmop * aop) {
     switch (aop->type) {
     case AOP_LIT:
         return "lit";
@@ -92,8 +89,7 @@ aopTypeName(asmop * aop) {
 /*-----------------------------------------------------------------*/
 /* aopForSym - for a true symbol                                   */
 /*-----------------------------------------------------------------*/
-static asmop *
-aopForSym(symbol * sym, bool canUsePointer, bool canUseOffset) {
+static asmop *aopForSym(symbol * sym, bool canUsePointer, bool canUseOffset) {
     int size;
     asmop *aop;
 
@@ -187,8 +183,7 @@ aopForSym(symbol * sym, bool canUsePointer, bool canUseOffset) {
 /*-----------------------------------------------------------------*/
 /* aopForVal - for a value                                         */
 /*-----------------------------------------------------------------*/
-static asmop *
-aopForVal(operand * op) {
+static asmop *aopForVal(operand * op) {
     asmop *aop;
 
     if (IS_OP_LITERAL(op)) {
@@ -209,8 +204,7 @@ aopForVal(operand * op) {
     return NULL;
 }
 
-static int
-aopOp(operand * op, bool canUsePointer, bool canUseOffset) {
+static int aopOp(operand * op, bool canUsePointer, bool canUseOffset) {
 
     if (IS_SYMOP(op)) {
         op->aop = aopForSym(OP_SYMBOL(op), canUsePointer, canUseOffset);
@@ -225,26 +219,22 @@ aopOp(operand * op, bool canUsePointer, bool canUseOffset) {
     return 0;
 }
 
-bool
-aopEqual(asmop * aop1, asmop * aop2, int offset) {
+bool aopEqual(asmop * aop1, asmop * aop2, int offset) {
     if (strcmp(aop1->name[offset], aop2->name[offset])) {
         return FALSE;
     }
     return TRUE;
 }
 
-bool
-aopIsDir(operand * op) {
+bool aopIsDir(operand * op) {
     return AOP_TYPE(op) == AOP_DIR;
 }
 
-bool
-aopIsBit(operand * op) {
+bool aopIsBit(operand * op) {
     return AOP_TYPE(op) == AOP_BIT;
 }
 
-bool
-aopIsPtr(operand * op) {
+bool aopIsPtr(operand * op) {
     if (AOP_TYPE(op) == AOP_STK ||
         AOP_TYPE(op) == AOP_CODE || AOP_TYPE(op) == AOP_FAR) {
         return TRUE;
@@ -254,8 +244,7 @@ aopIsPtr(operand * op) {
     }
 }
 
-char *
-opRegName(operand * op, int offset, char *opName, bool decorate) {
+char *opRegName(operand * op, int offset, char *opName, bool decorate) {
 
     if (IS_SYMOP(op)) {
         if (OP_SYMBOL(op)->onStack) {
@@ -305,8 +294,7 @@ opRegName(operand * op, int offset, char *opName, bool decorate) {
     return NULL;
 }
 
-char *
-printOp(operand * op) {
+char *printOp(operand * op) {
     static char line[132];
     sym_link *optype = operandType(op);
     bool isPtr = IS_PTR(optype);
@@ -426,8 +414,7 @@ printIc(bool printToStderr,
 /*-----------------------------------------------------------------*/
 /* resultRemat - result  is rematerializable                       */
 /*-----------------------------------------------------------------*/
-static int
-resultRemat(iCode * ic) {
+static int resultRemat(iCode * ic) {
     if (SKIP_IC(ic) || ic->op == IFX)
         return 0;
 
@@ -444,8 +431,7 @@ resultRemat(iCode * ic) {
 /*-----------------------------------------------------------------*/
 /* gen51Code - generate code for 8051 based controllers            */
 /*-----------------------------------------------------------------*/
-void
-genPBlazeCode(iCode * lic) {
+void genPBlazeCode(iCode * lic) {
     iCode *ic;
     int cln = 0;
 

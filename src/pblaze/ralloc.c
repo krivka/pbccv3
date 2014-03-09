@@ -86,8 +86,7 @@ bool PBlazeHasGprRegs = 0;
 /*-----------------------------------------------------------------*/
 /* PBlaze_regWithMask - returns pointer to register with mask        */
 /*-----------------------------------------------------------------*/
-regs *
-PBlaze_regWithMask(unsigned long mask) {
+regs *PBlaze_regWithMask(unsigned long mask) {
     int i;
     for (i = 0; i < PBlaze_nRegs; i++) {
         if (regsPBlaze[i].regMask == mask) {
@@ -101,8 +100,7 @@ PBlaze_regWithMask(unsigned long mask) {
 /* checkRegsMask - check the consistancy of the regMask redundancy */
 /*-----------------------------------------------------------------*/
 
-void
-checkRegMask(const char *f) {   // for debugging purposes only
+void checkRegMask(const char *f) {      // for debugging purposes only
     int i;
     unsigned long regMask = 0;
 
@@ -128,8 +126,7 @@ checkRegMask(const char *f) {   // for debugging purposes only
     }
 }
 
-char *
-regTypeToStr(short type) {
+char *regTypeToStr(short type) {
     switch (type) {
     case REG_PTR:
         return "ptr";
@@ -154,8 +151,7 @@ regTypeToStr(short type) {
 /*-----------------------------------------------------------------*/
 /* freeReg - frees a previous allocated register                   */
 /*-----------------------------------------------------------------*/
-static void
-freeReg(regs * reg, bool silent) {
+static void freeReg(regs * reg, bool silent) {
 
     checkRegMask(__FUNCTION__);
 
@@ -292,8 +288,7 @@ allocReg(unsigned int size, int type, symbol * sym, int offset, bool silent) {
 /* freeAllRegs - frees all registers                                 */
 /*-------------------------------------------------------------------*/
 // just to be sure, this should not be needed
-static void
-freeAllRegs(void) {
+static void freeAllRegs(void) {
     char regsFreed[132];
     int i;
     int nfr = 0;
@@ -321,8 +316,7 @@ freeAllRegs(void) {
 /*-----------------------------------------------------------------*/
 /* computeSpillable - given a point find the spillable live ranges */
 /*-----------------------------------------------------------------*/
-static bitVect *
-computeSpillable(iCode * ic) {
+static bitVect *computeSpillable(iCode * ic) {
     bitVect *spillable;
 
     /* spillable live ranges are those that are live at this 
@@ -344,16 +338,14 @@ computeSpillable(iCode * ic) {
 /*-----------------------------------------------------------------*/
 /* noSpilLoc - return true if a variable has no spil location      */
 /*-----------------------------------------------------------------*/
-static int
-noSpilLoc(symbol * sym, eBBlock * ebp, iCode * ic) {
+static int noSpilLoc(symbol * sym, eBBlock * ebp, iCode * ic) {
     return (sym->usl.spillLoc ? 0 : 1);
 }
 
 /*-----------------------------------------------------------------*/
 /* hasSpilLoc - will return 1 if the symbol has spil location      */
 /*-----------------------------------------------------------------*/
-static int
-hasSpilLoc(symbol * sym, eBBlock * ebp, iCode * ic) {
+static int hasSpilLoc(symbol * sym, eBBlock * ebp, iCode * ic) {
     return (sym->usl.spillLoc ? 1 : 0);
 }
 
@@ -361,24 +353,21 @@ hasSpilLoc(symbol * sym, eBBlock * ebp, iCode * ic) {
 /* hasSpilLocnoUptr - will return 1 if the symbol has spil location */
 /*                    but is not used as a pointer                 */
 /*-----------------------------------------------------------------*/
-static int
-hasSpilLocnoUptr(symbol * sym, eBBlock * ebp, iCode * ic) {
+static int hasSpilLocnoUptr(symbol * sym, eBBlock * ebp, iCode * ic) {
     return ((sym->usl.spillLoc && !sym->uptr) ? 1 : 0);
 }
 
 /*-----------------------------------------------------------------*/
 /* rematable - will return 1 if the remat flag is set              */
 /*-----------------------------------------------------------------*/
-static int
-rematable(symbol * sym, eBBlock * ebp, iCode * ic) {
+static int rematable(symbol * sym, eBBlock * ebp, iCode * ic) {
     return sym->remat;
 }
 
 /*-----------------------------------------------------------------*/
 /* notUsedInRemaining - not used or defined in remain of the block */
 /*-----------------------------------------------------------------*/
-static int
-notUsedInRemaining(symbol * sym, eBBlock * ebp, iCode * ic) {
+static int notUsedInRemaining(symbol * sym, eBBlock * ebp, iCode * ic) {
     return ((usedInRemaining(operandFromSymbol(sym), ic) ? 0 : 1) &&
             allDefsOutOfRange(sym->defs, ebp->fSeq, ebp->lSeq));
 }
@@ -386,17 +375,16 @@ notUsedInRemaining(symbol * sym, eBBlock * ebp, iCode * ic) {
 /*-----------------------------------------------------------------*/
 /* allLRs - return true for all                                    */
 /*-----------------------------------------------------------------*/
-static int
-allLRs(symbol * sym, eBBlock * ebp, iCode * ic) {
+static int allLRs(symbol * sym, eBBlock * ebp, iCode * ic) {
     return 1;
 }
 
 /*-----------------------------------------------------------------*/
 /* liveRangesWith - applies function to a given set of live range  */
 /*-----------------------------------------------------------------*/
-static set *
-liveRangesWith(bitVect * lrs, int (func) (symbol *, eBBlock *, iCode *),
-               eBBlock * ebp, iCode * ic) {
+static set *liveRangesWith(bitVect * lrs,
+                           int (func) (symbol *, eBBlock *, iCode *),
+                           eBBlock * ebp, iCode * ic) {
     set *rset = NULL;
     int i;
 
@@ -427,8 +415,7 @@ liveRangesWith(bitVect * lrs, int (func) (symbol *, eBBlock *, iCode *),
 /*-----------------------------------------------------------------*/
 /* leastUsedLR - given a set determines which is the least used    */
 /*-----------------------------------------------------------------*/
-static symbol *
-leastUsedLR(set * sset) {
+static symbol *leastUsedLR(set * sset) {
     symbol *sym = NULL, *lsym = NULL;
 
     sym = lsym = setFirstItem(sset);
@@ -458,8 +445,7 @@ leastUsedLR(set * sset) {
 /*-----------------------------------------------------------------*/
 /* noOverLap - will iterate through the list looking for over lap  */
 /*-----------------------------------------------------------------*/
-static int
-noOverLap(set * itmpStack, symbol * fsym) {
+static int noOverLap(set * itmpStack, symbol * fsym) {
     symbol *sym;
 
 
@@ -474,8 +460,7 @@ noOverLap(set * itmpStack, symbol * fsym) {
 /*-----------------------------------------------------------------*/
 /* isFree - will return 1 if the a free spil location is found     */
 /*-----------------------------------------------------------------*/
-static
-DEFSETFUNC(isFree) {
+static DEFSETFUNC(isFree) {
     symbol *sym = item;
     V_ARG(symbol **, sloc);
     V_ARG(symbol *, fsym);
@@ -503,8 +488,7 @@ DEFSETFUNC(isFree) {
 /*-----------------------------------------------------------------*/
 /* createStackSpil - create a location on the stack to spil        */
 /*-----------------------------------------------------------------*/
-static symbol *
-createStackSpil(symbol * sym) {
+static symbol *createStackSpil(symbol * sym) {
     symbol *sloc = NULL;
     char slocBuffer[30];
 
@@ -555,8 +539,7 @@ createStackSpil(symbol * sym) {
 /*-----------------------------------------------------------------*/
 /* spillThis - spils a specific operand                            */
 /*-----------------------------------------------------------------*/
-static void
-spillThis(symbol * sym) {
+static void spillThis(symbol * sym) {
     int i;
 
     D1(fprintf(stderr, "  spillThis: %s\n", sym->name));
@@ -589,8 +572,7 @@ spillThis(symbol * sym) {
 /*-----------------------------------------------------------------*/
 /* selectSpil - select a iTemp to spil : rather a simple procedure */
 /*-----------------------------------------------------------------*/
-static symbol *
-selectSpil(iCode * ic, eBBlock * ebp, symbol * forSym) {
+static symbol *selectSpil(iCode * ic, eBBlock * ebp, symbol * forSym) {
     bitVect *lrcs = NULL;
     set *selectS;
     symbol *sym;
@@ -673,8 +655,7 @@ selectSpil(iCode * ic, eBBlock * ebp, symbol * forSym) {
 /*-----------------------------------------------------------------*/
 /* spillSomething - spil some variable & mark registers as free    */
 /*-----------------------------------------------------------------*/
-static bool
-spillSomething(iCode * ic, eBBlock * ebp, symbol * forSym) {
+static bool spillSomething(iCode * ic, eBBlock * ebp, symbol * forSym) {
     symbol *ssym;
     int i;
 
@@ -735,8 +716,7 @@ spillSomething(iCode * ic, eBBlock * ebp, symbol * forSym) {
 /*-----------------------------------------------------------------*/
 /* getRegPtr - will try for PTR if not a GPR type if not spil      */
 /*-----------------------------------------------------------------*/
-static bool
-getRegPtr(iCode * ic, eBBlock * ebp, symbol * sym, short offset) {
+static bool getRegPtr(iCode * ic, eBBlock * ebp, symbol * sym, short offset) {
 
     D0(fprintf(stderr, "getRegPtr: %s ", sym->name));
     D0(printTypeChain(sym->type, stderr));
@@ -765,8 +745,7 @@ getRegPtr(iCode * ic, eBBlock * ebp, symbol * sym, short offset) {
 /*-----------------------------------------------------------------*/
 /* getRegGpr - will try for GPR if not spil                        */
 /*-----------------------------------------------------------------*/
-static bool
-getRegGpr(iCode * ic, eBBlock * ebp, symbol * sym, short offset) {
+static bool getRegGpr(iCode * ic, eBBlock * ebp, symbol * sym, short offset) {
 
     D0(fprintf(stderr, "getRegGpr: %s ", sym->name));
     D0(printTypeChain(sym->type, stderr));
@@ -794,8 +773,7 @@ getRegGpr(iCode * ic, eBBlock * ebp, symbol * sym, short offset) {
 /* deassignLRs - check the live to and if they have registers & are */
 /*               not spilt then free up the registers              */
 /*-----------------------------------------------------------------*/
-static void
-deassignLRs(iCode * ic, eBBlock * ebp) {
+static void deassignLRs(iCode * ic, eBBlock * ebp) {
     symbol *sym;
     int k;
 
@@ -834,8 +812,7 @@ deassignLRs(iCode * ic, eBBlock * ebp) {
 /*-----------------------------------------------------------------*/
 /* willCauseSpill - determines if allocating will cause a spill    */
 /*-----------------------------------------------------------------*/
-static bool
-willCauseSpill(symbol * sym) {
+static bool willCauseSpill(symbol * sym) {
     int i;
     // do it the rude way
     if (allocReg(getSize(sym->type), sym->regType, sym, 0, TRUE) ||
@@ -857,8 +834,7 @@ willCauseSpill(symbol * sym) {
 /* ult and operand, if this happens make sure they are in the same */
 /* position as the operand otherwise chaos results                 */
 /*-----------------------------------------------------------------*/
-static int
-positionRegs(symbol * result, symbol * opsym) {
+static int positionRegs(symbol * result, symbol * opsym) {
     int count = min(result->nRegs, opsym->nRegs);
     int i, j = 0, shared = 0;
     int changed = 0;
@@ -893,8 +869,7 @@ positionRegs(symbol * result, symbol * opsym) {
 /*-----------------------------------------------------------------*/
 /* serialRegAssign - serially allocate registers to the variables  */
 /*-----------------------------------------------------------------*/
-static void
-serialRegAssign(eBBlock ** ebbs, int count) {
+static void serialRegAssign(eBBlock ** ebbs, int count) {
     int i;
 
     /* for all blocks */
@@ -1036,8 +1011,7 @@ serialRegAssign(eBBlock ** ebbs, int count) {
 /*-----------------------------------------------------------------*/
 /* rUmaskForOp :- returns register mask for an operand             */
 /*-----------------------------------------------------------------*/
-bitVect *
-PBlaze_rUmaskForOp(operand * op) {
+bitVect *PBlaze_rUmaskForOp(operand * op) {
     bitVect *rumask;
     symbol *sym;
     int j;
@@ -1064,8 +1038,7 @@ PBlaze_rUmaskForOp(operand * op) {
 /*-----------------------------------------------------------------*/
 /* regsUsedIniCode :- returns bit vector of registers used in iCode */
 /*-----------------------------------------------------------------*/
-static bitVect *
-regsUsedIniCode(iCode * ic) {
+static bitVect *regsUsedIniCode(iCode * ic) {
     bitVect *rmask = newBitVect(PBlaze_nRegs);
 
     /* do the special cases first */
@@ -1099,8 +1072,7 @@ regsUsedIniCode(iCode * ic) {
 /*-----------------------------------------------------------------*/
 /* createRegMask - for each instruction will determine the regsUsed */
 /*-----------------------------------------------------------------*/
-static void
-createRegMask(eBBlock ** ebbs, int count) {
+static void createRegMask(eBBlock ** ebbs, int count) {
     int i;
 
     /* for all blocks */
@@ -1163,8 +1135,7 @@ createRegMask(eBBlock ** ebbs, int count) {
 /*-----------------------------------------------------------------*/
 /* rematStr - returns the rematerialized string for a remat var    */
 /*-----------------------------------------------------------------*/
-static char *
-rematStr(symbol * sym) {
+static char *rematStr(symbol * sym) {
     char *s = buffer;
     iCode *ic = sym->rematiCode;
 
@@ -1195,8 +1166,7 @@ rematStr(symbol * sym) {
 /*-----------------------------------------------------------------*/
 /* regTypeNum - computes the type & number of registers required   */
 /*-----------------------------------------------------------------*/
-static void
-regTypeNum(eBBlock * ebbs) {
+static void regTypeNum(eBBlock * ebbs) {
     symbol *sym;
     int k;
     iCode *ic;
@@ -1320,8 +1290,7 @@ regTypeNum(eBBlock * ebbs) {
 /*-----------------------------------------------------------------*/
 /* deallocStackSpil - this will set the stack pointer back         */
 /*-----------------------------------------------------------------*/
-static
-DEFSETFUNC(deallocStackSpil) {
+static DEFSETFUNC(deallocStackSpil) {
     symbol *sym = item;
 
     deallocLocal(sym);
@@ -1331,8 +1300,7 @@ DEFSETFUNC(deallocStackSpil) {
 /*-----------------------------------------------------------------*/
 /* packRegsForAssign - register reduction for assignment           */
 /*-----------------------------------------------------------------*/
-static int
-packRegsForAssign(iCode * ic, eBBlock * ebp) {
+static int packRegsForAssign(iCode * ic, eBBlock * ebp) {
     iCode *dic, *sic;
 
     if (!IS_ITEMP(IC_RIGHT(ic)) || OP_LIVETO(IC_RIGHT(ic)) > ic->seq) {
@@ -1392,8 +1360,7 @@ packRegsForAssign(iCode * ic, eBBlock * ebp) {
 /*-----------------------------------------------------------------*/
 /* findAssignToSym : scanning backwards looks for first assig found */
 /*-----------------------------------------------------------------*/
-static iCode *
-findAssignToSym(operand * op, iCode * ic) {
+static iCode *findAssignToSym(operand * op, iCode * ic) {
     iCode *dic;
 
     for (dic = ic->prev; dic; dic = dic->prev) {
@@ -1462,8 +1429,7 @@ findAssignToSym(operand * op, iCode * ic) {
 /*-----------------------------------------------------------------*/
 /* packRegsForSupport :- reduce some registers for support calls   */
 /*-----------------------------------------------------------------*/
-static int
-packRegsForSupport(iCode * ic, eBBlock * ebp) {
+static int packRegsForSupport(iCode * ic, eBBlock * ebp) {
     int change = 0;
     iCode *dic, *sic;
 
@@ -1529,8 +1495,7 @@ packRegsForSupport(iCode * ic, eBBlock * ebp) {
 /*-----------------------------------------------------------------*/
 /* packRegsForOneuse : - will reduce some registers for single Use */
 /*-----------------------------------------------------------------*/
-static iCode *
-packRegsForOneuse(iCode * ic, operand * op, eBBlock * ebp) {
+static iCode *packRegsForOneuse(iCode * ic, operand * op, eBBlock * ebp) {
     bitVect *uses;
     iCode *dic, *sic;
 
@@ -1673,8 +1638,7 @@ packRegsForOneuse(iCode * ic, operand * op, eBBlock * ebp) {
 /*-----------------------------------------------------------------*/
 /* isBitwiseOptimizable - requirements of JEAN LOUIS VERN          */
 /*-----------------------------------------------------------------*/
-static bool
-isBitwiseOptimizable(iCode * ic) {
+static bool isBitwiseOptimizable(iCode * ic) {
     sym_link *ltype = getSpec(operandType(IC_LEFT(ic)));
     sym_link *rtype = getSpec(operandType(IC_RIGHT(ic)));
 
@@ -1701,8 +1665,7 @@ isBitwiseOptimizable(iCode * ic) {
 /*-----------------------------------------------------------------*/
 /* packForPush - hueristics to reduce iCode for pushing            */
 /*-----------------------------------------------------------------*/
-static void
-packForPush(iCode * ic, eBBlock * ebp) {
+static void packForPush(iCode * ic, eBBlock * ebp) {
     iCode *dic, *lic;
     bitVect *dbv;
 
@@ -1755,8 +1718,7 @@ packForPush(iCode * ic, eBBlock * ebp) {
 /* packRegisters - does some transformations to reduce register    */
 /*                   pressure                                      */
 /*-----------------------------------------------------------------*/
-static void
-packRegisters(eBBlock * ebp) {
+static void packRegisters(eBBlock * ebp) {
     iCode *ic;
     int change = 0;
 
@@ -1834,9 +1796,11 @@ packRegisters(eBBlock * ebp) {
             (IS_SYMOP(IC_LEFT(ic)) &&
              IS_ITEMP(IC_RESULT(ic)) &&
              IS_OP_LITERAL(IC_RIGHT(ic))) &&
-            OP_SYMBOL(IC_LEFT(ic))->remat &&
-            (!IS_SYMOP(IC_RIGHT(ic))
-             || !IS_CAST_ICODE(OP_SYMBOL(IC_RIGHT(ic))->rematiCode))
+            OP_SYMBOL(IC_LEFT(ic))->remat && (!IS_SYMOP(IC_RIGHT(ic))
+                                              ||
+                                              !IS_CAST_ICODE(OP_SYMBOL
+                                                             (IC_RIGHT(ic))->
+                                                             rematiCode))
             && bitVectnBitsOn(OP_DEFS(IC_RESULT(ic))) == 1) {
             OP_SYMBOL(IC_RESULT(ic))->remat = 1;
             OP_SYMBOL(IC_RESULT(ic))->rematiCode = ic;
@@ -1952,8 +1916,7 @@ packRegisters(eBBlock * ebp) {
 /*-----------------------------------------------------------------*/
 /* assignRegisters - assigns registers to each live range as need  */
 /*-----------------------------------------------------------------*/
-void
-pblaze_assignRegisters(ebbIndex * ebbi) {
+void pblaze_assignRegisters(ebbIndex * ebbi) {
     eBBlock **ebbs = ebbi->bbOrder;
     int count = ebbi->count;
     iCode *ic;
