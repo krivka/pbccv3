@@ -45,9 +45,6 @@ extern int allocInfo;
 
 extern struct dbuf_s *codeOutBuf;
 
-static lineNode *lineHead = NULL;
-static lineNode *lineCurr = NULL;
-
 void bailOut (char *mesg) {
   fprintf (stderr, "%s: bailing out\n", mesg);
   exit (1);
@@ -430,8 +427,6 @@ void genPBlazeCode (iCode * lic) {
   iCode *ic;
   int cln = 0;
 
-  lineHead = lineCurr = NULL;
-
   /* if debug information required */
   if (options.debug && currFunc)
     {
@@ -477,10 +472,11 @@ void genPBlazeCode (iCode * lic) {
 
   /* now we are ready to call the
      peep hole optimizer */
-  if (!options.nopeep)
-    peepHole (&lineHead);
+  if (!options.nopeep && genLine.lineHead)
+    peepHole (&genLine.lineHead);
 
   /* now do the actual printing */
-  printLine (lineHead, codeOutBuf);
+  if (genLine.lineHead)
+    printLine (genLine.lineHead, codeOutBuf);
   return;
 }
