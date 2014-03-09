@@ -427,6 +427,61 @@ static int resultRemat(iCode * ic) {
     return 0;
 }
 
+static char *toBoolean(operand *op) {
+    // TODO
+    return "";
+}
+
+static void genFunction(iCode *ic) {
+    symbol *sym = OP_SYMBOL(IC_LEFT(ic));
+    emitcode(";", "function %s", sym->name);
+    emitcode("", "%s:", sym->rname[0] ? sym->rname : sym->name);
+    if (IFFUNC_ISNAKED(sym->type)) {
+        emitcode(";", "naked function");
+        return;
+    }
+}
+
+static void genCall(iCode *ic) {
+    symbol *sym = OP_SYMBOL(IC_LEFT(ic));
+    emitcode("call", "%s", sym->rname[0] ? sym->rname : sym->name);
+}
+
+static void genPointerSet(iCode *ic) {
+
+}
+
+static void genAssign(iCode *ic) {
+    operand *result = IC_RESULT(ic);
+    operand *right = IC_RIGHT(ic);
+
+    aopOp(right, ic, FALSE);
+    aopOp(result, ic, TRUE);
+
+    if (AOP_TYPE(result) == AOP_BIT) {
+        if (AOP_TYPE (right) == AOP_LIT) {
+            if ((int) operandLitValue(right))
+                emitcode(";", "TODO setbit");
+            else
+                emitcode("xor", "%s, %s", AOP_NAME(result)[0], AOP_NAME(result)[0]);
+        }
+        else if (AOP_TYPE(right) == AOP_BIT) {
+            emitcode("load", "%s, %s", AOP_NAME(result), AOP_NAME(right));
+        }
+        else {
+            emitcode("load", "%s, %s", AOP_NAME(result), toBoolean(right));
+        }
+    }
+    else {
+        int size = AOP_SIZE(result);
+        int offset = 0;
+        unsigned long lit = 0;
+        while (offset != size) {
+            emitcode("load", "%s, %s", AOP_NAME(result), AOP_NAME(right));
+            offset++;
+        }
+    }
+}
 
 /*-----------------------------------------------------------------*/
 /* gen51Code - generate code for 8051 based controllers            */
@@ -468,6 +523,21 @@ void genPBlazeCode(iCode * lic) {
         switch (ic->op) {
         case INLINEASM:
             genInline(ic);
+            break;
+
+        case FUNCTION:
+            genFunction(ic);
+            break;
+
+        case CALL:
+            genCall(ic);
+            break;
+
+        case '=':
+            if (POINTER_SET(ic))
+                genPointerSet(ic);
+            else
+                genAssign(ic);
             break;
 
         default:
