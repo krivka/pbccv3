@@ -25,38 +25,37 @@
 #ifndef SDCCGEN51_H
 #define SDCCGEN51_H
 
-enum
-  {
+enum {
     AOP_LIT = 1,
-    AOP_REG, 
-    AOP_DIR, 
+    AOP_REG,
+    AOP_DIR,
     AOP_FAR,
     AOP_CODE,
     AOP_GPTR,
     AOP_STK,
-    AOP_IMMD, 
+    AOP_IMMD,
     AOP_BIT
-  };
+};
 
 /* type asmop : a homogenised type for 
    all the different spaces an operand can be
    in */
 typedef struct asmop {
-  
-  short type;			
-  /* can have values
-     AOP_LIT    -  operand is a literal value
-     AOP_REG    -  is in registers
-     AOP_DIR    -  direct, just a name
-     AOP_FAR    -  
-     AOP_CODE   - 
-     AOP_GPTR   -
-     AOP_STK    -  on stack (with offset)
-     AOP_IMMD   -  immediate value for eg. remateriazable 
-     AOP_CRY    -  carry contains the value of this
-  */
-  short size; /* size of this aop */
-  char name[2][64]; /* can be "r0" "r6h" [rxbw+y] "#..." */
+
+    short type;
+    /* can have values
+       AOP_LIT    -  operand is a literal value
+       AOP_REG    -  is in registers
+       AOP_DIR    -  direct, just a name
+       AOP_FAR    -  
+       AOP_CODE   - 
+       AOP_GPTR   -
+       AOP_STK    -  on stack (with offset)
+       AOP_IMMD   -  immediate value for eg. remateriazable 
+       AOP_CRY    -  carry contains the value of this
+     */
+    short size;                 /* size of this aop */
+    char name[2][64];           /* can be "r0" "r6h" [rxbw+y] "#..." */
 } asmop;
 
 #define AOP(x) x->aop
@@ -64,7 +63,7 @@ typedef struct asmop {
 #define AOP_SIZE(x) x->aop->size
 #define AOP_NAME(x) x->aop->name
 
-void xa51_emitDebuggerSymbol (const char *);
-void genPBlazeCode (iCode *);
+void xa51_emitDebuggerSymbol(const char *);
+void genPBlazeCode(iCode *);
 
 #endif
