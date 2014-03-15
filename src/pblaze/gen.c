@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
-  SDCCgen51.c - source file for code generation for 8051
+  was: SDCCgen51.c - source file for code generation for 8051
 
   Written By -  Sandeep Dutta . sandeep.dutta@usa.net (1998)
          and -  Jean-Louis VERN.jlvern@writeme.com (1999)
@@ -429,7 +429,7 @@ static int resultRemat(iCode * ic) {
 
 static char *toBoolean(operand *op) {
     // TODO
-    return "";
+    return "ofc";
 }
 
 static void genFunction(iCode *ic) {
@@ -484,7 +484,7 @@ static void genAssign(iCode *ic) {
 }
 
 /*-----------------------------------------------------------------*/
-/* gen51Code - generate code for 8051 based controllers            */
+/* genPBlazeCode - generate code for PBlaze based controllers            */
 /*-----------------------------------------------------------------*/
 void genPBlazeCode(iCode * lic) {
     iCode *ic;

@@ -24,8 +24,8 @@
 -------------------------------------------------------------------------*/
 #include "SDCCicode.h"
 #include "SDCCBBlock.h"
-#ifndef SDCCRALLOC_H
-#define SDCCRALLOC_H 1
+#ifndef SDCCRALLOCPBLAZE_H
+#define SDCCRALLOCPBLAZE_H 1
 
 #define REG_PTR 0x01            // pointer register
 #define REG_GPR 0x02            // general purpose register
@@ -63,12 +63,6 @@ typedef struct reg_info {
     symbol *sym;                // used by symbol
 } regs;
 
-extern regs regsXA51[];
-extern unsigned long xa51RegsInUse;
-
-regs *xa51_regWithIdx(int);
 void pblaze_assignRegisters(ebbIndex * ebbi);
-
-bitVect *xa51_rUmaskForOp(operand * op);
 
 #endif

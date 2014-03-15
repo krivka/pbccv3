@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
-  SDCCgen51.h - header file for code generation for 8051
+  was: SDCCgen51.h - header file for code generation for 8051
 
              Written By -  Sandeep Dutta . sandeep.dutta@usa.net (1998)
 
@@ -22,8 +22,8 @@
    what you give them.   Help stamp out software-hoarding!  
 -------------------------------------------------------------------------*/
 
-#ifndef SDCCGEN51_H
-#define SDCCGEN51_H
+#ifndef SDCCGENPBLAZE_H
+#define SDCCGENPBLAZE_H
 
 enum {
     AOP_LIT = 1,
@@ -63,7 +63,6 @@ typedef struct asmop {
 #define AOP_SIZE(x) x->aop->size
 #define AOP_NAME(x) x->aop->name
 
-void xa51_emitDebuggerSymbol(const char *);
 void genPBlazeCode(iCode *);
 
 #endif
