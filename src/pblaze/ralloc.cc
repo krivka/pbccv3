@@ -8,8 +8,6 @@ Memory *Memory::_self = nullptr;
 Bank Bank::m_banks[2];
 char Bank::m_current = 0;
 
-#define PBLAZE_NREGS REG_CNT - SEND_REG_CNT - 1
-#define PBLAZE_FREG 0
 
 static Set<EbbIndex> *codeSet { nullptr };
 
@@ -291,6 +289,16 @@ Register* Bank::getFirstFree() {
             return m_regs + i;
     }
     return NULL;
+}
+
+int Bank::getFreeCount() {
+    int count = 0;
+    for (int i = PBLAZE_FREG; i < PBLAZE_NREGS; i++) {
+        if (m_regs[i].m_free && !m_regs[i].m_reserved) {
+            count++;
+        }
+    }
+    return count;
 }
 
 Register* Bank::getRegWithIdx(int idx) {

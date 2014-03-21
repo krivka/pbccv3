@@ -25,6 +25,8 @@ void pblaze_genCodeLoop(void);
 
 #define REG_CNT 16
 #define SEND_REG_CNT 4
+#define PBLAZE_NREGS REG_CNT - SEND_REG_CNT - 1
+#define PBLAZE_FREG 0
 
 class Operand;
 class EbbIndex;
@@ -116,7 +118,11 @@ struct reg_info {
 class Bank {
 public:
     static Bank *current();
+    Register *regs() {
+        return m_regs;
+    }
     Register *getFirstFree();
+    int getFreeCount();
     Register *getRegWithIdx(int idx);
     int spillRegsIntoMem(ICode *lic, Operand *op, int offset, int free);
 

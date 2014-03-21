@@ -228,6 +228,9 @@ public:
     bool isGlobalVolatile() {
         return isvolatile && isOpGlobal();
     }
+    Register *isOffsetInReg(int offset);
+    int isOpInReg();
+    void testOperand(int free, bitVect *rUse);
     Value *getValue() {
         return (Value*) OP_VALUE((::operand*)this);
     }

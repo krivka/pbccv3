@@ -21,6 +21,45 @@ MemoryCell* Operand::isInMem() {
     return nullptr;
 }
 
+int Operand::isOpInReg() {
+    int found = 0;
+    Bank *bank = Bank::current();
+    for (int i = PBLAZE_FREG; i < PBLAZE_NREGS; i++) {
+        if (bank->regs()[i].m_oper && this == bank->regs()[i].m_oper) {
+            found++;
+        }
+    }
+    return found;
+}
+
+Register* Operand::isOffsetInReg(int offset) {
+    Bank *bank = Bank::current();
+    for (int i = PBLAZE_FREG; i < PBLAZE_NREGS; i++) {
+        if (bank->regs()[i].m_oper
+            && this == bank->regs()[i].m_oper
+            && bank->regs()[i]->m_offset == offset) {
+            return &bank->regs()[i];
+        }
+    }
+    return nullptr;
+}
+
+void Operand::testOperand(int free, bitVect* rUse) {
+    Register *reg;
+    int sizeInReg = isOpInReg();
+    int remainOp = bitVectnBitsOn(rUse);
+    if (sizeInReg > 0 && remainOp - sizeInReg >= free) {
+        int size = getType()->getSize();
+
+        for (int i = 0; i < size; i++) {
+            reg = isOffsetInReg(i);
+            if (reg) {
+                bitVectUnSetBit(rUse, reg->m_index);
+            }
+        }
+    }
+}
+
 Register* ICode::getRegister() {
     // TODO clearUnusedOpFromReg
 
