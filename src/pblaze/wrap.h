@@ -228,11 +228,18 @@ public:
     bool isGlobalVolatile() {
         return isvolatile && isOpGlobal();
     }
+    int liveTo() {
+        return OP_LIVETO((::operand*)this);
+    }
+    int liveFrom() {
+        return OP_LIVEFROM((::operand*)this);
+    }
     Register *isOffsetInReg(int offset);
     int isOpInReg();
     void testOperand(int free, bitVect *rUse);
     void moveToMemory();
     void moveOffsetToMemory(int offset);
+    void freeOffsetFromMem(int offset);
     Value *getValue() {
         return (Value*) OP_VALUE((::operand*)this);
     }
@@ -289,3 +296,4 @@ inline Emitter& operator<<(Emitter &e, Symbol *s) {
 
 #endif // __cplusplus
 #endif // PBLAZE_WRAP_H
+

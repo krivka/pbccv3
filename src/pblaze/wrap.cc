@@ -135,6 +135,17 @@ void Operand::moveOffsetToMemory(int offset) {
     }
 }
 
+void Operand::freeOffsetFromMem(int offset) {
+    for (int i = 0; i < Memory::size; i++) {
+        MemoryCell *cell = Memory::cells()[i];
+        if (cell->m_currOper
+            && this == cell->m_currOper
+            && offset == cell->m_offset) {
+            cell->setFree();
+        }
+    }
+}
+
 Register* ICode::getRegister() {
     // TODO clearUnusedOpFromReg
 

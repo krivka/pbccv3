@@ -329,7 +329,7 @@ int Bank::spillRegsIntoMem(ICode* lic, Operand* op, int offset, int free) {
     for (int i = PBLAZE_FREG; i < PBLAZE_NREGS; i++) {
         if (m_regs[i].m_reserved
             || m_regs[i].m_free
-            || (bStart > m_regs[i].m_oper->getLiveFrom())
+            || (bStart > m_regs[i].m_oper->liveFrom())
             || lic->isUsedInCurrentInstruction(m_regs[i].m_oper)) {
             bitVectUnSetBit(rUse, i);
         }
