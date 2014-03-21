@@ -1,68 +1,131 @@
-/*-------------------------------------------------------------------------
+#ifndef PBLAZE_RALLOC_H
+#define PBLAZE_RALLOC_H
+#ifdef __cplusplus
 
-  SDCCralloc.h - header file register allocation
+extern "C" {
 
-                Written By -  Sandeep Dutta . sandeep.dutta@usa.net (1998)
+#include <stdio.h>
 
-   This program is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
-   later version.
-   
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-   
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-   
-   In other words, you are welcome to use, share and improve this program.
-   You are forbidden to forbid anyone else to use, share and improve
-   what you give them.   Help stamp out software-hoarding!  
--------------------------------------------------------------------------*/
+#include "SDCCsymt.h"
 #include "SDCCicode.h"
 #include "SDCCBBlock.h"
-#ifndef SDCCRALLOCPBLAZE_H
-#define SDCCRALLOCPBLAZE_H 1
 
-#define REG_PTR 0x01            // pointer register
-#define REG_GPR 0x02            // general purpose register
-#define REG_CND 0x04            // condition (bit) register
-#define REG_SCR 0x40            // scratch register
-#define REG_STK 0x80            // stack pointer register
+#endif // __cplusplus
 
-// register ID's
-enum {
-    S0_ID,
-    S1_ID,
-    S2_ID,
-    S3_ID,
-    S4_ID,
-    S5_ID,
-    S6_ID,
-    S7_ID,
-    S8_ID,
-    S9_ID,
-    SA_ID,
-    SB_ID,
-    SC_ID,
-    SD_ID,
-    SE_ID,
-    SF_ID,
+void pblaze_assignRegisters(ebbIndex *ebbi);
+void pblaze_genCodeLoop(void);
+
+#ifdef __cplusplus
+}
+
+#include "util.h"
+#include "wrap.h"
+
+#include <vector>
+
+#define REG_CNT 16
+#define SEND_REG_CNT 4
+
+class Operand;
+class EbbIndex;
+class ICode;
+class EbBlock;
+struct reg_info;
+class Register;
+
+class Allocator {
+public:
+    static void putVal(ICode *ic, Operand *op, int offset);
+    Register *getReg(ICode *ic, Operand *op, int offset);
+    Register *getTempReg();
+    Register *getRegOper(ICode *ic, Operand *op, int offset);
+    static void assignRegisters(EbbIndex *ebbi);
+    void allocOpInMem(Operand *op);
+    static void allocGlobals(ICode *ic);
+private:
+    Allocator();
+    static Allocator *_self;
+    int m_tempRegCounter { 0 };
 };
 
-typedef struct reg_info {
-    unsigned char rIdx;         // the register ID
-    unsigned char size;         // size of register (1,2,4)
-    unsigned char type;         // scratch, pointer, general purpose, stack, condition (bit)
-    char *name;
-    unsigned long regMask;
-    bool isFree;
-    symbol *sym;                // used by symbol
-} regs;
+class MemoryCell {
+public:
+    MemoryCell(int addr);
+    bool onlyInMem() const { return m_onlyInMem; }
 
-void pblaze_assignRegisters(ebbIndex * ebbi);
+    unsigned int m_addr { UINT_MAX };
+    operand *m_currOper { nullptr };
+    short m_offset { 0 };
+    short m_ptrOffset { 0 };
+    short m_nextPart { -1 };
+    bool m_reserved { false };
+    bool m_global { false };
+    bool m_free { true };
+    bool m_onlyInMem { false };
+};
 
-#endif
+class Memory {
+public:
+    const int size { 256 };
+
+    static Memory *instance();
+
+    std::vector<MemoryCell>& cells();
+    int getBlock(int size);
+    MemoryCell *containsOffset(Operand *op, int offset);
+private:
+    Memory();
+
+    std::vector<MemoryCell> m_cells;
+    static Memory *_self;
+};
+
+class Register {
+public:
+    void lock() {
+        m_reserved = true;
+    }
+    void unlock() {
+        if (m_index < REG_CNT - SEND_REG_CNT - 1)
+            m_reserved = false;
+    }
+    unsigned char getIndex() {
+        if (this)
+            return m_index;
+        return 0xFF;
+    }
+    operator Register*() {
+        return nullptr;
+    }
+
+    short m_type;
+    short m_index;
+    char m_name[3];
+    Operand *m_oper;
+    short m_offset;
+    short m_ptrOffset;
+    short m_changed;
+    bool m_free;
+    bool m_reserved;
+};
+
+struct reg_info {
+    Register r; // :'(
+};
+
+class Bank {
+public:
+    static Bank *current();
+    Register *getFirstFree();
+    Register *getRegWithIdx(int idx);
+    int spillRegsIntoMem(ICode *lic, Operand *op, int offset, int free);
+
+private:
+    Register m_regs[REG_CNT];
+    static Bank m_banks[2];
+    static char m_current;
+};
+
+#endif // __cplusplus
+
+#endif // PBLAZE_RALLOC_H

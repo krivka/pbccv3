@@ -22,6 +22,7 @@
 #include "main.h"
 #include "dbuf_string.h"
 #include "ralloc.h"
+#include "glue.h"
 
 
 #define SEND_REG_COUNT 4
@@ -120,7 +121,7 @@ PORT pblaze_port = {
     .processor                   = NULL,
     .general                     = {
 //         .do_glue                     = pblaze_do_glue,
-        .do_glue                     = glue,
+        .do_glue                     = pblaze_glue,
         .glue_up_main                = TRUE,
         .supported_models            = MODEL_SMALL,
         .default_model               = MODEL_SMALL,

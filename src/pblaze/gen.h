@@ -1,68 +1,39 @@
-/*-------------------------------------------------------------------------
-  was: SDCCgen51.h - header file for code generation for 8051
+#ifndef PBLAZE_GEN_H
+#define PBLAZE_GEN_H
+#ifdef __cplusplus
 
-             Written By -  Sandeep Dutta . sandeep.dutta@usa.net (1998)
+#include "common.h"
+#include "wrap.h"
+void genPBlazeCode(ICode *lic);
 
-   This program is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
-   later version.
-   
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-   
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-   
-   In other words, you are welcome to use, share and improve this program.
-   You are forbidden to forbid anyone else to use, share and improve
-   what you give them.   Help stamp out software-hoarding!  
--------------------------------------------------------------------------*/
+class I {
+public:
+    virtual const char *getName() const = 0;
 
-#ifndef SDCCGENPBLAZE_H
-#define SDCCGENPBLAZE_H
-
-enum {
-    AOP_LIT = 1,
-    AOP_REG,
-    AOP_DIR,
-    AOP_FAR,
-    AOP_CODE,
-    AOP_GPTR,
-    AOP_STK,
-    AOP_IMMD,
-    AOP_BIT
+    class Load;
+    class Store;
 };
 
-/* type asmop : a homogenised type for 
-   all the different spaces an operand can be
-   in */
-typedef struct asmop {
+class I::Load : public I {
+public:
+    Load(Register *r, Operand *o) {
 
-    short type;
-    /* can have values
-       AOP_LIT    -  operand is a literal value
-       AOP_REG    -  is in registers
-       AOP_DIR    -  direct, just a name
-       AOP_FAR    -  
-       AOP_CODE   - 
-       AOP_GPTR   -
-       AOP_STK    -  on stack (with offset)
-       AOP_IMMD   -  immediate value for eg. remateriazable 
-       AOP_CRY    -  carry contains the value of this
-     */
-    short size;                 /* size of this aop */
-    char name[2][64];           /* can be "r0" "r6h" [rxbw+y] "#..." */
-} asmop;
+    }
+    virtual const char *getName() const { return "load"; };
+};
 
-#define AOP(x) x->aop
-#define AOP_TYPE(x) x->aop->type
-#define AOP_SIZE(x) x->aop->size
-#define AOP_NAME(x) x->aop->name
+class I::Store : public I {
+public:
+    Store(Register *r, MemoryCell *m) {
 
-void genPBlazeCode(iCode *);
+    }
+    virtual const char *getName() const { return "store"; };
+};
 
-#endif
+inline Emitter& operator<<(Emitter &e, const I &i) {
+    e << i.getName();
+}
+
+
+#endif // __cplusplus
+#endif // PBLAZE_GEN_H
