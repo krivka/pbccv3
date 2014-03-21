@@ -47,7 +47,7 @@ Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
     reg = &op->getSymbol()->regs[offset]->r;
     mem = Memory::containsOffset(op, offset);
 
-    if (reg.getIndex() < PBLAZE_NREGS) {
+    if (reg->getIndex() < PBLAZE_NREGS) {
         return reg;
     }
     else if (mem != nullptr) {
@@ -69,7 +69,7 @@ Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
             reg->m_oper = op;
             reg->m_offset = offset;
 
-            op->getSymbol()->regs[offset] = reg;
+            op->getSymbol()->regs[offset] = (struct reg_info*) reg;
         }
 
         if (ic->getPrev() || ic->getNext()) {
