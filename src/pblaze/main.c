@@ -21,10 +21,9 @@
 #include "common.h"
 #include "main.h"
 #include "dbuf_string.h"
-
+#include "ralloc.h"
 #include "glue.h"
 
-void processIcode(iCode *ic);
 
 #define SEND_REG_COUNT 4
 
@@ -49,19 +48,6 @@ void pblaze_setDefaultOptions(void) {
 extern struct dbuf_s *codeOutBuf;
 operand *register_vars[NREGS] = { 0 };
 
-void pblaze_assignRegisters(ebbIndex * ebbi)
-{
-	eBBlock **ebbs = ebbi->bbOrder;
-	int count = ebbi->count;
-	int i;
-	for (i = 0; i < count; i++) {
-		iCode *ic = ebbs[i]->sch;
-        while (ic) {
-            processIcode(ic);
-            ic = ic->next;
-        }
-	}
-}
 
 const char *pblaze_getRegName(const struct reg_info *reg) {
     /*
@@ -134,7 +120,8 @@ PORT pblaze_port = {
     .target_name                 = "XILINX PicoBlaze",
     .processor                   = NULL,
     .general                     = {
-        .do_glue                     = pblaze_do_glue,
+//         .do_glue                     = pblaze_do_glue,
+        .do_glue                     = pblaze_glue,
         .glue_up_main                = TRUE,
         .supported_models            = MODEL_SMALL,
         .default_model               = MODEL_SMALL,
