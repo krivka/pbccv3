@@ -23,6 +23,8 @@ void AssignLiteral(ICode *ic) {
     if (!right->isLiteral)
         return;
 
+    int size = right->getType()->getSize();
+
     emit << "; " << "Assigning value " << right->getValue()->getUnsignedLong();
 
     if (result->isOpGlobal()) {

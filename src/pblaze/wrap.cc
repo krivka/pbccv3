@@ -194,3 +194,47 @@ Register* ICode::getRegister() {
 
     Register *reg = Bank::current()->getFirstFree();
 }
+
+int ICode::pointerSetOpt(int currOffset) {
+    if (!isPointerSet() || !getNext() || !getNext()->getNext() || !getPrev())
+        return 0;
+
+    int pOffset, nOffset;
+
+    if (*getResult() == *getPrev()->getResult()
+        && getResult()->liveTo() == seq) {
+        if (getPrev()->op == '+' && getPrev()->getRight()->isLiteral) {
+            pOffset = getPrev()->getRight()->getValue()->getUnsignedLong();
+        }
+        else if (getPrev()->op == ADDRESS_OF) {
+            pOffset = 0;
+        }
+        else {
+            return 0;
+        }
+    }
+    else {
+        return 0;
+    }
+
+    if (getNext()->op == '+'
+        && getNext()->getNext()->isPointerSet()
+        && *getNext()->getResult() == *getNext()->getNext()->getResult()
+        && getNext()->getNext()->getResult()->liveTo() == seq + 2) {
+        if (getNext()->getRight()->isLiteral) {
+            nOffset = getNext()->getRight()->getValue()->getUnsignedLong();
+        }
+        else {
+            return 0;
+        }
+    }
+    else {
+        return 0;
+    }
+
+    // TODO ASSIGN OPTIMIZATION
+    emit << I::Add(this, nOffset - pOffset - currOffset);
+    Allocator::updateOpInMem(this, getNext()->getResult(), 0);
+    getNext()->generated = true;
+    return 1;
+}

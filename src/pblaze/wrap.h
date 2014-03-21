@@ -228,6 +228,10 @@ public:
     bool isGlobalVolatile() {
         return isvolatile && isOpGlobal();
     }
+    bool isInOutRef() {
+        // TODO Don't really know what to do about this, not really necessary
+        return false;
+    }
     int liveTo() {
         return OP_LIVETO((::operand*)this);
     }
@@ -289,8 +293,12 @@ public:
                op == CALL || op == PCALL || op == ARRAYINIT ||
                op == CRITICAL || op == ENDCRITICAL || op == ENDFUNCTION;
     }
+    bool isPointerSet() {
+        return POINTER_SET((::iCode*)this);
+    }
     Register *getRegister();
     bool isUsedInCurrentInstruction(Operand* op);
+    int pointerSetOpt(int currOffset);
 };
 
 inline Emitter& operator<<(Emitter &e, Symbol *s) {
