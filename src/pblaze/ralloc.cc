@@ -77,7 +77,7 @@ Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
         }
 
         if (!op->isGlobal && op->liveTo() && !mem->onlyInMem()) {
-            op->freeOffset(offset);
+            op->freeOffsetFromMem(offset);
         }
 
         return reg;
@@ -345,11 +345,11 @@ int Bank::spillRegsIntoMem(ICode* lic, Operand* op, int offset, int free) {
     for (ic = lic; ic; ic = ic->getNext()) {
         if (!ic->skipNoOp()) {
             if (ic->getLeft())
-                ic->testOperand(free, rUse);
+                ic->getLeft()->testOperand(free, rUse);
             if (ic->getRight())
-                ic->testOperand(free, rUse);
+                ic->getRight()->testOperand(free, rUse);
             if (ic->getResult())
-                ic->testOperand(free, rUse);
+                ic->getResult()->testOperand(free, rUse);
         }
         remainingOp = bitVectnBitsOn(rUse);
         if (remainingOp == free)

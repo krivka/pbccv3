@@ -21,6 +21,16 @@ MemoryCell* Operand::isInMem() {
     return nullptr;
 }
 
+bool ICode::isUsedInCurrentInstruction(Operand* op) {
+    if (getLeft() && getLeft() == op)
+        return true;
+    if (getRight() && getRight() == op)
+        return true;
+    if (getResult() && getResult() == op)
+        return true;
+    return false;
+}
+
 int Operand::isOpInReg() {
     int found = 0;
     Bank *bank = Bank::current();

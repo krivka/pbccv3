@@ -257,6 +257,9 @@ public:
     ICode *getNext() {
         return static_cast<ICode*>(this->next);
     }
+    ICode *getPrev() {
+        return static_cast<ICode*>(this->prev);
+    }
     ICode *getFirst() {
         iCode *ic = (::iCode*)this;
         while (ic->prev) {
@@ -274,6 +277,7 @@ public:
                op == CRITICAL || op == ENDCRITICAL || op == ENDFUNCTION;
     }
     Register *getRegister();
+    bool isUsedInCurrentInstruction(Operand* op);
 };
 
 inline Emitter& operator<<(Emitter &e, Symbol *s) {
