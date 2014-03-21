@@ -234,12 +234,16 @@ public:
     int liveFrom() {
         return OP_LIVEFROM((::operand*)this);
     }
+    MemoryCell *isOffsetInMem(int offset);
     Register *isOffsetInReg(int offset);
     int isOpInReg();
     void testOperand(int free, bitVect *rUse);
     void moveToMemory();
     void moveOffsetToMemory(int offset);
+    void freeFromMemory();
     void freeOffsetFromMem(int offset);
+    void freeFromReg();
+    void freeOffsetFromReg(int offset);
     Value *getValue() {
         return (Value*) OP_VALUE((::operand*)this);
     }

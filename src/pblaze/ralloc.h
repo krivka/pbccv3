@@ -56,7 +56,7 @@ public:
     bool onlyInMem() const { return m_onlyInMem; }
 
     unsigned int m_addr { UINT_MAX };
-    operand *m_currOper { nullptr };
+    Operand *m_currOper { nullptr };
     short m_offset { 0 };
     short m_ptrOffset { 0 };
     short m_nextPart { -1 };
