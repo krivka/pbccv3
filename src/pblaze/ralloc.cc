@@ -241,14 +241,24 @@ Memory::Memory() {
     }
 }
 
+MemoryCell* Memory::getFirstFree() {
+    for (int i = 0; i < size; i++) {
+        if (m_cells[i].m_free)
+            return &m_cells[i];
+    }
+    return nullptr;
+}
+
 MemoryCell* Memory::containsOffset(Operand* op, int offset) {
+    Memory *mem = instance();
+
     if (!op || op->type != SYMBOL)
         return nullptr;
 
     for (int i = 0; i < size; i++) {
-        if (m_cells[i].m_currOper && op == m_cells[i].m_currOper)
-            if (m_cells[i].m_offset == offset)
-                return &m_cells[i];
+        if (mem->m_cells[i].m_currOper && op == mem->m_cells[i].m_currOper)
+            if (mem->m_cells[i].m_offset == offset)
+                return &mem->m_cells[i];
     }
 }
 

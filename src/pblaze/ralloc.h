@@ -68,13 +68,14 @@ public:
 
 class Memory {
 public:
-    const int size { 256 };
+    static const int size { 256 };
 
     static Memory *instance();
 
     std::vector<MemoryCell>& cells();
     int getBlock(int size);
-    MemoryCell *containsOffset(Operand *op, int offset);
+    MemoryCell *getFirstFree();
+    static MemoryCell *containsOffset(Operand *op, int offset);
 private:
     Memory();
 
