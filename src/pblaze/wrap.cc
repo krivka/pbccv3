@@ -104,7 +104,7 @@ void Operand::moveToMemory() {
                 std::cerr << "TODO PLACEHOLDER" << __FILE__ << __LINE__ << std::endl;
             }
 
-            emit << Store(s->regs[i]->r, mem);
+            emit << I::Store(s->regs[i]->r, mem);
 
             mem->m_currOper = this;
             mem->m_free = false;
