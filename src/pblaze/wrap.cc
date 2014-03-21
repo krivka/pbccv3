@@ -1,4 +1,6 @@
 #include "wrap.h"
+#include "gen.h"
+
 
 MemoryCell* Operand::isInMem() {
     int found = 0;
@@ -67,6 +69,69 @@ void Operand::testOperand(int free, bitVect* rUse) {
                 bitVectUnSetBit(rUse, reg->m_index);
             }
         }
+    }
+}
+
+void Operand::moveToMemory() {
+    MemoryCell *mem, *temp;
+    Symbol *s = getSymbol();
+    int next = -1;
+    int size = getSize();
+
+    for (int i = size - 1; i >= 0+ i--) {
+        if (!s->regs[i] && (temp = op->isOffsetInMem(i))) {
+            next = temp->m_addr;
+        }
+        else if (s->regs[i]) {
+            if (!isOpGlobal() || !(mem = isOffsetInMem(i))) {
+                mem = Memory::getFirstFree();
+            }
+            if (!mem) {
+                std::cerr << "TODO PLACEHOLDER" << __FILE__ << __LINE__ << std::endl;
+            }
+
+            emit << Store(s->regs[i]->r, mem);
+
+            mem->m_currOper = this;
+            mem->m_free = false;
+            mem->m_global = isOpGlobal();
+            mem->m_offset = i;
+            mem->m_ptrOffset = s->regs[i]->r.m_ptrOffset;
+            mem->m_nextPart = next;
+            next = mem->m_addr;
+        }
+    }
+    freeOpFromReg();
+}
+
+void Operand::moveOffsetToMemory(int offset) {
+    MemoryCell *mem;
+
+    if (isOpGlobal())
+        moveToMemory();
+    else if (offset >= 0 && getSymbol()->regs[offset]) {
+        mem = isOffsetInMem(offset);
+
+        if (!mem)
+            mem = Memory::getFirstFree();
+        if (!mem)
+            std::cerr << "TODO PLACEHOLDER" << __FILE__ << __LINE__ << std::endl;
+
+        emit << I::Store(getSymbol()->regs[offset]->r, mem);
+
+        mem->m_currOper = this;
+        mem->m_free = false;
+        mem->m_global = isOpGlobal();
+        mem->m_offset = offset;
+        mem->m_ptrOffset = getSymbol()->regs[offset]->r.m_ptrOffset;
+
+        MemoryCell *temp = Memory::containsOffset(this, offset + 1);
+        if (temp)
+            mem->m_nextPart = temp->m_addr;
+        else
+            mem->m_nextPart = -1;
+
+        freeOffsetFromReg(offset);
     }
 }
 

@@ -231,6 +231,8 @@ public:
     Register *isOffsetInReg(int offset);
     int isOpInReg();
     void testOperand(int free, bitVect *rUse);
+    void moveToMemory();
+    void moveOffsetToMemory(int offset);
     Value *getValue() {
         return (Value*) OP_VALUE((::operand*)this);
     }
