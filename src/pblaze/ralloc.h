@@ -54,6 +54,7 @@ class MemoryCell {
 public:
     MemoryCell(int addr);
     bool onlyInMem() const { return m_onlyInMem; }
+    void setFree();
 
     unsigned int m_addr { UINT_MAX };
     Operand *m_currOper { nullptr };
@@ -100,6 +101,7 @@ public:
     operator Register*() {
         return nullptr;
     }
+    void setFree();
 
     short m_type;
     short m_index;

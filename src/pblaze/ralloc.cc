@@ -235,6 +235,17 @@ void pblaze_genCodeLoop(void) {
 
 MemoryCell::MemoryCell(int addr) : m_addr(addr) { }
 
+void MemoryCell::setFree() {
+    m_currOper = nullptr;
+    m_offset = 0;
+    m_ptrOffset = 0;
+    m_nextPart = 0;
+    m_reserved = false;
+    m_global = false;
+    m_free = true;
+    m_onlyInMem = false;
+}
+
 Memory::Memory() {
     for (int i = 0; i < size; i++) {
         m_cells.emplace_back(MemoryCell(i));
@@ -287,6 +298,15 @@ Memory* Memory::instance() {
     if (!_self)
         _self = new Memory();
     return _self;
+}
+
+void Register::setFree() {
+    m_free = true;
+    m_oper = nullptr;
+    m_offset = 0;
+    m_ptrOffset = 0;
+    m_reserved = 0;
+    // m_changed = SAME_VAL; TODO
 }
 
 Bank* Bank::current() {
