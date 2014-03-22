@@ -294,7 +294,7 @@ public:
                op == CRITICAL || op == ENDCRITICAL || op == ENDFUNCTION;
     }
     bool isPointerSet() {
-        return POINTER_SET((::iCode*)this);
+        return POINTER_SET(((::iCode*)this));
     }
     Register *getRegister();
     bool isUsedInCurrentInstruction(Operand* op);

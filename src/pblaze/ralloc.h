@@ -42,6 +42,7 @@ public:
     Register *getTempReg();
     Register *getRegOper(ICode *ic, Operand *op, int offset);
     static void assignRegisters(EbbIndex *ebbi);
+    static void updateOpInMem(ICode *ic, Operand *op, int offset);
     void allocOpInMem(Operand *op);
     static void allocGlobals(ICode *ic);
 private:

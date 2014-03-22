@@ -32,20 +32,20 @@ void AssignLiteral(ICode *ic) {
             Allocator::putVal(ic, result, i);
         }
     }
-    else if (result->isPointerSet()) {
+    else if (ic->isPointerSet()) {
         if (result->isInOutRef()) {
             Allocator::putVal(ic, result, 0);
         }
         for (int i = 0; i < size; i++) {
             Allocator::putVal(ic, result, i);
             if (i + 1 < size) {
-                emit << Add(ic, 1);
-                Allocator::updateOpInMem(ic, op, offset);
+                emit << I::Add(ic, 1);
+                Allocator::updateOpInMem(ic, result, i);
             }
         }
         if (!ic->pointerSetOpt(size - 1) && size >1 && result->liveTo() > ic->seq) {
-            emit << Sub(ic, size - 1);
-            Allocator::updateOpInMem(ic, op, 0);
+            emit << I::Sub(ic, size - 1);
+            Allocator::updateOpInMem(ic, result, 0);
         }
     }
     else {

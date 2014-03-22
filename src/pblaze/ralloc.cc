@@ -175,6 +175,16 @@ void Allocator::assignRegisters(EbbIndex* ebbi) {
     genPBlazeCode(ic);
 }
 
+void Allocator::updateOpInMem(ICode* ic, Operand* op, int offset) {
+    MemoryCell *mem = op->isOffsetInMem(offset);
+    if (mem && mem->onlyInMem()
+        && op->getSymbol() && op->getSymbol()->regs[offset] != NULL
+        && !op->isGlobalVolatile()) {
+        emit << I::Store(op->getSymbol()->regs[offset]->r, mem);
+        op->getSymbol()->regs[offset] = nullptr;
+    }
+}
+
 void Allocator::allocGlobals(ICode* ic) {
     Operand *op;
 

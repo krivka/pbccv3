@@ -13,6 +13,8 @@ public:
     class Load;
     class Fetch;
     class Store;
+    class Add;
+    class Sub;
 };
 
 class I::Load : public I {
@@ -37,6 +39,22 @@ public:
 
     }
     virtual const char *getName() const { return "store"; }
+};
+
+class I::Add : public I {
+public:
+    Add(ICode *ic, unsigned long value) {
+
+    }
+    virtual const char *getName() const { return "add"; }
+};
+
+class I::Sub : public I {
+public:
+    Sub(ICode *ic, unsigned long value) {
+
+    }
+    virtual const char *getName() const { return "sub"; }
 };
 
 inline Emitter& operator<<(Emitter &e, const I &i) {
