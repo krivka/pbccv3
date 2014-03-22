@@ -37,10 +37,10 @@ class Register;
 
 class Allocator {
 public:
-    static void putVal(ICode *ic, Operand *op, int offset);
-    Register *getReg(ICode *ic, Operand *op, int offset);
-    Register *getTempReg();
-    Register *getRegOper(ICode *ic, Operand *op, int offset);
+    static void putVal(ICode *ic, Operand *left, Operand *right, int offset);
+    static Register *getReg(ICode *ic, Operand *op, int offset);
+    static Register *getTempReg();
+    static Register *getRegOper(ICode *ic, Operand *op, int offset);
     static void assignRegisters(EbbIndex *ebbi);
     static void updateOpInMem(ICode *ic, Operand *op, int offset);
     void allocOpInMem(Operand *op);
@@ -48,7 +48,7 @@ public:
 private:
     Allocator();
     static Allocator *_self;
-    int m_tempRegCounter { 0 };
+    static int m_tempRegCounter;
 };
 
 class MemoryCell {

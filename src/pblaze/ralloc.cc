@@ -1,9 +1,9 @@
 #include "ralloc.h"
 #include "gen.h"
 #include <iostream>
-#include <boost/concept_check.hpp>
 
 Allocator *Allocator::_self = nullptr;
+int Allocator::m_tempRegCounter = 0;
 Memory *Memory::_self = nullptr;
 Bank Bank::m_banks[2];
 char Bank::m_current = 0;
@@ -121,27 +121,35 @@ Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
     return nullptr;
 }
 
-void Allocator::putVal(ICode* ic, Operand* op, int offset) {
+void Allocator::putVal(ICode* ic, Operand* left, Operand *right, int offset) {
     Register *regTmp, *res;
     MemoryCell *m;
 
-    if(op->type == SYMBOL) {
-        if (op->isGlobalVolatile() || (op->getType()->isPtr())) {
-            m = Memory::instance()->containsOffset(op, offset);
-            if (m) {
-                regTmp = ic->getRegister();
-                regTmp->lock();
-                emit << I::Load(regTmp, op);
-                emit << I::Store(regTmp, m);
-                regTmp->unlock();
-            }
-            else {
-                std::cerr << op->getSymbol()->name << " is not in memory";
-            }
-        }
-        if (op->isOpGlobal()) {
+    if(left->type != SYMBOL)
+        return;
 
+    if (left->isGlobalVolatile() || (left->getType()->isPtr())) {
+        m = Memory::instance()->containsOffset(left, offset);
+        if (m) {
+            regTmp = ic->getRegister();
+            regTmp->lock();
+            emit << I::Load(regTmp, left);
+            emit << I::Store(regTmp, m);
+            regTmp->unlock();
         }
+        else {
+            std::cerr << left->getSymbol()->name << " is not in memory";
+        }
+    }
+    if (left->isOpGlobal()) {
+
+    }
+    else if (ic->isPointerSet()) {
+
+    }
+    else {
+        res = getReg(ic, left, offset);
+        emit << I::Load(res, right);
     }
 }
 

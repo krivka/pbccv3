@@ -29,15 +29,15 @@ void AssignLiteral(ICode *ic) {
 
     if (result->isOpGlobal()) {
         for (int i = 0; i < right->getType()->getSize(); i++) {
-            Allocator::putVal(ic, result, i);
+            Allocator::putVal(ic, result, right, i);
         }
     }
     else if (ic->isPointerSet()) {
         if (result->isInOutRef()) {
-            Allocator::putVal(ic, result, 0);
+            Allocator::putVal(ic, result, right, 0);
         }
         for (int i = 0; i < size; i++) {
-            Allocator::putVal(ic, result, i);
+            Allocator::putVal(ic, result, right, i);
             if (i + 1 < size) {
                 emit << I::Add(ic, 1);
                 Allocator::updateOpInMem(ic, result, i);
@@ -50,7 +50,7 @@ void AssignLiteral(ICode *ic) {
     }
     else {
         for (int i = 0; i < size; i++) {
-            Allocator::putVal(ic, result, i);
+            Allocator::putVal(ic, result, right, i);
         }
     }
 }
