@@ -12,6 +12,7 @@ extern "C" {
 
 #include "ralloc.h"
 #include "util.h"
+#include <iostream>
 
 class EbbIndex;
 class EbBlock;
@@ -236,7 +237,7 @@ public:
         return OP_LIVETO((::operand*)this);
     }
     int liveFrom() {
-        return OP_LIVEFROM((::operand*)this);
+        return OP_LIVEFROM(((::operand*)this));
     }
     MemoryCell *isOffsetInMem(int offset);
     Register *isOffsetInReg(int offset);
@@ -248,6 +249,10 @@ public:
     void freeOffsetFromMem(int offset);
     void freeFromReg();
     void freeOffsetFromReg(int offset);
+    void free() {
+        freeFromReg();
+        freeFromMemory();
+    }
     Value *getValue() {
         return (Value*) OP_VALUE((::operand*)this);
     }
@@ -296,6 +301,7 @@ public:
     bool isPointerSet() {
         return POINTER_SET(((::iCode*)this));
     }
+    void assignOptimization(Operand *to, Operand *from);
     Register *getRegister();
     bool isUsedInCurrentInstruction(Operand* op);
     int pointerSetOpt(int currOffset);

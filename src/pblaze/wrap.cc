@@ -195,6 +195,50 @@ Register* ICode::getRegister() {
     Register *reg = Bank::current()->getFirstFree();
 }
 
+void ICode::assignOptimization(Operand* to, Operand* from) {
+    if (to->isOpGlobal())
+        to->freeFromReg();
+    else
+        to->free();
+
+    int size = to->getType()->getSize();
+    int nReg = from->getType()->getSize();
+    to->getSymbol()->nRegs = size;
+
+    if (!nReg)
+        return;
+
+    for (int i = 0; i < size; i++) {
+        Register *reg = (Register*) from->getSymbol()->regs[i];
+        if (!reg) {
+            MemoryCell *mem = from->isOffsetInMem(i);
+            if (mem) {
+                mem->m_currOper = to;
+            }
+            else {
+                reg = getRegister();
+                if (reg->m_index < PBLAZE_NREGS) {
+                    reg->m_free = 0;
+                    reg->m_offset = i;
+                }
+            }
+        }
+        to->getSymbol()->regs[i] = (reg_info*) reg;
+        if (reg) {
+            reg->m_oper = to;
+        }
+        from->getSymbol()->regs[i] = nullptr;
+    }
+
+    for (int i = size; i < nReg; i++) {
+        Register *reg = (Register*) from->getSymbol()->regs[i];
+        reg->setFree();
+        from->getSymbol()->regs[i] = nullptr;
+    }
+
+    from->getSymbol()->nRegs = 0;
+}
+
 int ICode::pointerSetOpt(int currOffset) {
     if (!isPointerSet() || !getNext() || !getNext()->getNext() || !getPrev())
         return 0;
@@ -232,7 +276,7 @@ int ICode::pointerSetOpt(int currOffset) {
         return 0;
     }
 
-    // TODO ASSIGN OPTIMIZATION
+    assignOptimization(getNext()->getResult(), getResult());
     emit << I::Add(this, nOffset - pOffset - currOffset);
     Allocator::updateOpInMem(this, getNext()->getResult(), 0);
     getNext()->generated = true;

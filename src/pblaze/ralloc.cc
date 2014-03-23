@@ -40,6 +40,7 @@ Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
     if (op->type != SYMBOL)
         return nullptr;
 
+
     int size = op->getSymbol()->getType()->getSize();
     if (offset >= size)
         return nullptr;
@@ -285,9 +286,12 @@ MemoryCell* Memory::containsOffset(Operand* op, int offset) {
         return nullptr;
 
     for (int i = 0; i < size; i++) {
-        if (mem->m_cells[i].m_currOper && op == mem->m_cells[i].m_currOper)
-            if (mem->m_cells[i].m_offset == offset)
-                return &mem->m_cells[i];
+        if (mem->m_cells[i].m_currOper && op == mem->m_cells[i].m_currOper) {
+            if (mem->m_cells[i].m_offset == offset) {
+                std::cerr << "I: " << i << std::endl;
+                return mem->m_cells.data() + i;
+            }
+        }
     }
 }
 
@@ -359,7 +363,10 @@ Register* Bank::getRegWithIdx(int idx) {
 }
 
 int Bank::spillRegsIntoMem(ICode* lic, Operand* op, int offset, int free) {
-    if (!lic || free <= 0)
+    if (!lic)
+        return -1;
+
+    if (free <= 0)
         return 0;
 
     ICode *ic, *temp;
