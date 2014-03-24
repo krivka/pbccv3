@@ -87,6 +87,9 @@ private:
 
 class Register {
 public:
+    Register() {
+        m_index = m_lastIndex++ % REG_CNT;
+    }
     void lock() {
         m_reserved = true;
     }
@@ -113,6 +116,8 @@ public:
     short m_changed;
     bool m_free;
     bool m_reserved;
+private:
+    static int m_lastIndex;
 };
 
 struct reg_info {

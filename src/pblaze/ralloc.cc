@@ -5,6 +5,7 @@
 Allocator *Allocator::_self = nullptr;
 int Allocator::m_tempRegCounter = 0;
 Memory *Memory::_self = nullptr;
+int Register::m_lastIndex = 0;
 Bank Bank::m_banks[2];
 char Bank::m_current = 0;
 
@@ -355,10 +356,11 @@ int Bank::getFreeCount() {
 
 Register* Bank::getRegWithIdx(int idx) {
     for (int i = 0; i < PBLAZE_NREGS; i++) {
+        std::cerr << m_regs[i].m_index << std::endl;
         if (m_regs[i].m_index == idx)
             return &m_regs[i];
     }
-    std::cerr << "TODO PLACEHOLDER " << __FILE__ << __LINE__ << std::endl;
+    std::cerr << __PRETTY_FUNCTION__ << "@" << __FILE__ << __LINE__ << ": Called with index " << idx << std::endl;
     return nullptr;
 }
 

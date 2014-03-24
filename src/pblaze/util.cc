@@ -10,3 +10,7 @@ Emitter& Emitter::operator<<(const char* s) {
 Emitter& Emitter::operator<<(unsigned long s) {
     std::cerr << s;
 }
+
+Emitter& Emitter::operator<<(const std::string& s) {
+    std::cerr << s;
+}
