@@ -25,7 +25,7 @@ void AssignLiteral(ICode *ic) {
 
     int size = right->getType()->getSize();
 
-    emit << "; " << "Assigning value " << right->getValue()->getUnsignedLong();
+    emit << "; " << "Assigning value " << right->getValue()->getUnsignedLong() << "\n";
 
     if (result->isOpGlobal()) {
         for (int i = 0; i < right->getType()->getSize(); i++) {

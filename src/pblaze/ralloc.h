@@ -22,6 +22,7 @@ void pblaze_genCodeLoop(void);
 #include "wrap.h"
 
 #include <vector>
+#include <iostream>
 
 #define REG_CNT 16
 #define SEND_REG_CNT 4
@@ -126,6 +127,8 @@ struct reg_info {
 
 class Bank {
 public:
+    Bank() {
+    }
     static Bank *current();
     Register *regs() {
         return m_regs;

@@ -16,11 +16,12 @@ Allocator::Allocator() {
 }
 
 Register* Allocator::getTempReg() {
+    if (m_tempRegCounter >= SEND_REG_CNT)
+        m_tempRegCounter = 0;
+
     Register *reg = Bank::current()->getRegWithIdx(PBLAZE_NREGS + m_tempRegCounter);
 
     m_tempRegCounter++;
-    if (m_tempRegCounter >= SEND_REG_CNT)
-        m_tempRegCounter = 0;
 
     return reg;
 }
@@ -30,9 +31,11 @@ Register* Allocator::getRegOper(ICode* ic, Operand* op, int offset) {
     Register *reg;
 
     // clearUnusedOpFromReg
-    if (bank->getFreeCount() == 0) {
+    if (bank->getFreeCount() <= 0) {
         bank->spillRegsIntoMem(ic, op, offset, 1);
     }
+
+    return bank->getFirstFree();
 }
 
 Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
@@ -92,6 +95,8 @@ Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
             reg->m_oper = op;
             reg->m_offset = offset;
             reg->m_ptrOffset = 0;
+            if (!op)
+                std::cerr << "CURROPER NULL222";
 
             op->getSymbol()->regs[offset] = (struct reg_info*) reg;
             op->getSymbol()->nRegs = size;
@@ -101,6 +106,9 @@ Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
             if (!mem) {
                 std::cerr << "TODO ERROR PLACEHOLDER" << __FILE__ << __LINE__ << std::endl;
             }
+
+            if (!op)
+                std::cerr << "CURROPER NULL111";
 
             op->getSymbol()->nRegs = size;
             op->getSymbol()->regs[offset] = (struct reg_info*) reg;
@@ -294,6 +302,7 @@ MemoryCell* Memory::containsOffset(Operand* op, int offset) {
             }
         }
     }
+    return nullptr;
 }
 
 std::vector<MemoryCell>& Memory::cells() {
@@ -355,11 +364,8 @@ int Bank::getFreeCount() {
 }
 
 Register* Bank::getRegWithIdx(int idx) {
-    for (int i = 0; i < PBLAZE_NREGS; i++) {
-        std::cerr << m_regs[i].m_index << std::endl;
-        if (m_regs[i].m_index == idx)
-            return &m_regs[i];
-    }
+    if (idx >= 0 && idx < REG_CNT)
+        return &m_regs[idx];
     std::cerr << __PRETTY_FUNCTION__ << "@" << __FILE__ << __LINE__ << ": Called with index " << idx << std::endl;
     return nullptr;
 }
@@ -386,7 +392,8 @@ int Bank::spillRegsIntoMem(ICode* lic, Operand* op, int offset, int free) {
     for (int i = PBLAZE_FREG; i < PBLAZE_NREGS; i++) {
         if (m_regs[i].m_reserved
             || m_regs[i].m_free
-            || (bStart > m_regs[i].m_oper->liveFrom())
+            || !m_regs[i].m_oper
+            || bStart > m_regs[i].m_oper->liveFrom()
             || lic->isUsedInCurrentInstruction(m_regs[i].m_oper)) {
             bitVectUnSetBit(rUse, i);
         }
