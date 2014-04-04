@@ -120,7 +120,7 @@ Register* Allocator::getReg(ICode* ic, Operand* op, int offset) {
             mem->m_global = op->isOpGlobal();
 
             MemoryCell *memTmp = Memory::containsOffset(op, offset + 1);
-            mem->m_nextPart = memTmp ? -1 : memTmp->m_addr;
+            mem->m_nextPart = memTmp ? memTmp->m_addr : -1;
             memTmp = Memory::containsOffset(op, offset - 1);
             if (memTmp)
                 memTmp->m_nextPart = mem->m_addr;
