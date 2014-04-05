@@ -209,7 +209,7 @@ public:
 class Operand : public ::operand {
 public:
     bool operator==(Operand &other) {
-        if (!this->isSymOp() || !this->isSymOp())
+        if (!this->isSymOp() || !other.isSymOp())
             return false;
 
         if (this->getSymbol() == other.getSymbol())
@@ -224,6 +224,8 @@ public:
         return !(*this == other);
     }
     Symbol *getSymbol() {
+        if (!this->isSymOp())
+            CRASH();
         return static_cast<Symbol*>(OP_SYMBOL(((::operand*)this)));
     }
     bool isSymOp() {

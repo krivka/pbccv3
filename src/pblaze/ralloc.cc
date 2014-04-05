@@ -29,8 +29,10 @@ void pblaze_genCodeLoop(void) {
 
 
 void MemoryCell::clear(reg_info *reg) {
+    int tempI = Emitter::i;
     Emitter::i = reg->m_index;
     emit << I::Fetch(reg->m_oper, m_pos);
+    Emitter::i = tempI;
     Byte::clear();
 }
 
@@ -88,7 +90,10 @@ Register* Bank::getFreeRegister(int seq) {
 void Register::clear() {
     MemoryCell *cell = Memory::get()->occupy(m_oper, m_index);
 
+    int tempI = Emitter::i;
+    Emitter::i = m_index;
     emit << I::Store(m_oper->getSymbol()->regs[m_index], cell->m_pos);
+    Emitter::i = tempI;
     m_oper->getSymbol()->regs[m_index] = nullptr;
 
     Byte::clear();

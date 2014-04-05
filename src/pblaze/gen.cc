@@ -65,11 +65,29 @@ void Add(ICode *ic) {
     }
 }
 
+void Sub(ICode *ic) {
+    Operand *result = ic->getResult();
+    Operand *left = ic->getLeft();
+    Operand *right = ic->getRight();
+
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::Sub(left, right);
+    }
+
+    // += ...
+    if (*result != *left) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
+    }
+}
+
 std::map<unsigned int, genFunc> map {
     { FUNCTION, Function },
     { CALL, Call },
     { '=', Assign },
     { '+', Add },
+    { '-', Sub },
 };
 
 };

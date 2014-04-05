@@ -15,25 +15,27 @@ using std::stringstream;
 void genPBlazeCode(ICode *lic);
 
 
-inline Emitter& operator<<(Emitter &e, Operand *o) {
+inline stringstream& operator<<(stringstream &ss, Operand *o) {
+    int i = Emitter::i;
     if (o->isLiteral) {
-        e << ((o->getValue()->getUnsignedLong() & (0xFF << (e.i * 8))) >> e.i * 8);
+        ss << ((o->getValue()->getUnsignedLong() & (0xFF << (i * 8))) >> i * 8);
     }
     else if (o->isSymOp()) {
-        if (!o->getSymbol()->regs[e.i]) {
-            o->getSymbol()->regs[e.i] = Bank::current()->getFreeRegister();
-            o->getSymbol()->regs[e.i]->occupy(o, e.i);
+        if (!o->getSymbol()->regs[i]) {
+            o->getSymbol()->regs[i] = Bank::current()->getFreeRegister();
+            o->getSymbol()->regs[i]->occupy(o, i);
         }
-        e << o->getSymbol()->regs[e.i]->getName();
+        ss << o->getSymbol()->regs[i]->getName();
     }
     else {
         std::cerr << "Unknown Emitter Operand type!\n";
     }
+    Emitter::i = i;
 }
 
 class I {
 public:
-    virtual void emitSelf() const = 0;
+    virtual string toString() const = 0;
 
     class Load;
     class Fetch;
@@ -47,14 +49,16 @@ class I::Load : public I {
 public:
     Load(Operand *left, Operand *right) : m_l(left), m_r(right) { }
     Load(Operand *left, uint8_t value) : m_l(left), m_value(value) { }
-    virtual void emitSelf() const {
-        emit << "load " << m_l << ", ";
-        if (m_r) {
-            emit << m_r;
-        }
-        else {
-            emit << (int) m_value;
-        }
+    virtual string toString() const {
+        stringstream s;
+        s << "load ";
+        s << m_l;
+        s << ", ";
+        if (m_r)
+            s << m_r;
+        else
+            s << (int) m_value;
+        return s.str();
     }
 private:
     Operand *m_l { nullptr };
@@ -65,10 +69,10 @@ private:
 class I::Fetch : public I {
 public:
     Fetch(Operand *left, uint8_t addr) : m_l(left), m_addr(addr) { }
-    virtual void emitSelf() const {
+    virtual string toString() const {
         stringstream s;
-        s << std::hex << (int) m_addr;
-        emit << "fetch " << m_l << ", " << s.str();
+        s << "fetch " << m_l << ", " << std::hex << (int) m_addr;
+        return s.str();
     }
 private:
     Operand *m_l;
@@ -78,10 +82,10 @@ private:
 class I::Store : public I {
 public:
     Store(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
-    virtual void emitSelf() const {
+    virtual string toString() const {
         stringstream s;
         s << "store " << m_reg->getName() << ", " << std::hex << (int) m_addr;
-        emit << s.str();
+        return s.str();
     }
 private:
     reg_info *m_reg;
@@ -91,8 +95,13 @@ private:
 class I::Add : public I {
 public:
     Add(Operand *left, Operand *right) : m_l(left), m_r(right) { }
-    virtual void emitSelf() const {
-        emit << "add " << m_l << ", " << m_r;
+    virtual string toString() const {
+        stringstream s;
+        s << "add ";
+        s << m_l;
+        s << ", ";
+        s << m_r;
+        return s.str();
     }
 private:
     Operand *m_l;
@@ -101,30 +110,31 @@ private:
 
 class I::Sub : public I {
 public:
-    Sub(ICode *ic, unsigned long value) {
-
+    Sub(Operand *left, Operand *right) : m_l(left), m_r(right) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "sub " << m_l << ", " << m_r;
+        return s.str();
     }
-    virtual void emitSelf() const {
-        emit << "sub";
-    }
+private:
+    Operand *m_l;
+    Operand *m_r;
 };
 
 class I::Call : public I {
 public:
     Call(Symbol *func) : m_func(func) { }
-    virtual void emitSelf() const {
+    virtual string toString() const {
         stringstream s;
         s << "call " << m_func->rname;
-        emit << s.str();
+        return s.str();
     }
 private:
     Symbol *m_func;
 };
 
 inline Emitter& operator<<(Emitter &e, const I &i) {
-    e << "\t";
-    i.emitSelf();
-    e << "\n";
+    e << "\t" << i.toString() << "\n";
 }
 
 
