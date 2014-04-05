@@ -24,7 +24,6 @@ void pblaze_genCodeLoop(void);
 #include <vector>
 #include <iostream>
 #include <sstream>
-#include <boost/concept_check.hpp>
 
 #define MEMORY_SIZE 256
 
@@ -40,7 +39,6 @@ class EbbIndex;
 class ICode;
 class EbBlock;
 struct reg_info;
-class Register;
 
 class Allocator {
 public:
@@ -56,21 +54,24 @@ struct Byte {
         m_oper = nullptr;
         m_index = 0;
     }
-    void occupy(Operand *o, int index) {
+    Byte *occupy(Operand *o, int index) {
         m_free = false;
-        m_index = -1;
-        m_oper = nullptr;
+        m_index = index;
+        m_oper = o;
+        return this;
     }
     bool isFree() {
         return m_free;
     }
 
     bool m_free { true };
-    uint8_t m_index { -1 };
+    uint8_t m_index { 0 };
     Operand *m_oper { nullptr };
 };
 
-class MemoryCell : public Byte {
+struct MemoryCell : public Byte {
+    void clear(reg_info *reg);
+    uint8_t m_pos { 0 };
 };
 
 class Memory {
@@ -78,22 +79,36 @@ public:
     static Memory *get() {
         return !_self ? (_self = new Memory()) : _self;
     }
-    void occupy(Operand *o, int index) {
-
+    MemoryCell *occupy(Operand *o, int index) {
+        for (MemoryCell &c : m_cells) {
+            if (c.isFree()) {
+                if (c.occupy(o, index))
+                    return &c;
+            }
+        }
+        throw "Ran out of static memory";
     }
+    MemoryCell *contains(Operand *o, int index);
 
 private:
     MemoryCell m_cells[MEMORY_SIZE];
 
-    Memory() { }
+    Memory() {
+        for (int i = 0; i < MEMORY_SIZE; i++) {
+            m_cells[i].m_pos = i;
+        }
+    }
     static Memory *_self;
 };
 
 #define Register reg_info
 struct reg_info : public Byte {
-    void clear() {
-        Memory::get()->occupy(m_oper, m_index);
-        Byte::clear();
+    void clear();
+    void occupy(Operand *o, int index) {
+        MemoryCell *cell = Memory::get()->contains(o, index);
+        if (cell)
+            cell->clear(this);
+        Byte::occupy(o, index);
     }
 
     string getName() {
@@ -101,7 +116,7 @@ struct reg_info : public Byte {
         ss << "s" << std::hex << (int) sX;
         return ss.str();
     }
-    uint8_t sX { -1 };
+    uint8_t sX { 0 };
 };
 
 class Bank {

@@ -33,22 +33,35 @@ public:
         s << "load " << m_reg->getName() << ", " << (int) m_value;
         return s.str();
     }
+private:
     reg_info *m_reg;
     uint8_t m_value;
 };
 
 class I::Fetch : public I {
 public:
+    Fetch(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
     virtual string getName() const {
         stringstream s;
-        s << "fetch ";
+        s << "fetch " << m_reg->getName() << ", " << std::hex << (int) m_addr;
         return s.str();
     }
+private:
+    reg_info *m_reg;
+    uint8_t m_addr;
 };
 
 class I::Store : public I {
 public:
-    virtual string getName() const { return "store"; }
+    Store(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
+    virtual string getName() const {
+        stringstream s;
+        s << "store " << m_reg->getName() << ", " << std::hex << (int) m_addr;
+        return s.str();
+    }
+private:
+    reg_info *m_reg;
+    uint8_t m_addr;
 };
 
 class I::Add : public I {

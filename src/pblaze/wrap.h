@@ -19,7 +19,6 @@ class EbBlock;
 class ICode;
 class MemoryCell;
 class Memory;
-class Register;
 class Bank;
 
 template<typename T>
@@ -210,7 +209,15 @@ public:
 class Operand : public ::operand {
 public:
     bool operator==(Operand &other) {
-        // TODO
+        if (!this->isSymOp() || !this->isSymOp())
+            return false;
+
+        if (this->getSymbol() == other.getSymbol())
+            return true;
+
+        if (0 == strcmp(this->getSymbol()->rname, other.getSymbol()->rname))
+            return true;
+
         return false;
     }
     Symbol *getSymbol() {

@@ -1,5 +1,6 @@
 #include "gen.h"
 #include "util.h"
+#include "wrap.h"
 #include <map>
 
 namespace Gen {
@@ -25,7 +26,7 @@ void AssignLiteral(ICode *ic) {
 
     int size = right->getType()->getSize();
 
-    emit << "; " << "Assigning value " << right->getValue()->getUnsignedLong() << "\n";
+    emit << "; " << "Assigning value " << right->getValue()->getUnsignedLong() << " into " << result->getSymbol()->name << "\n";
 
     auto getByte = [](unsigned long n, uint8_t byte) {
         return n & (0xFF << (byte * 8));
