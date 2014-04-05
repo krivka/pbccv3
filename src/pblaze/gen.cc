@@ -27,11 +27,17 @@ void AssignLiteral(ICode *ic) {
 
     emit << "; " << "Assigning value " << right->getValue()->getUnsignedLong() << "\n";
 
-    for (int i = 0; i < result->getType()->getSize(); i++) {
-        if (!result->getSymbol()->regs[i])
-            result->getSymbol()->regs[i] = Bank::current()->getFreeRegister();
+    auto getByte = [](unsigned long n, uint8_t byte) {
+        return n & (0xFF << (byte * 8));
+    };
 
-//         result->getSymbol()->regs[i]
+    for (int i = 0; i < result->getType()->getSize(); i++) {
+        Register **regp = &result->getSymbol()->regs[i];
+        if (!*regp)
+            *regp = Bank::current()->getFreeRegister();
+
+        (*regp)->occupy(result, i);
+        emit << I::Load(*regp, getByte(right->getValue()->getUnsignedLong(), i));
     }
 }
 
@@ -45,7 +51,7 @@ void Assign(ICode *ic) {
     if (right->isLiteral)
         AssignLiteral(ic);
 
-    std::cerr << result->getSymbol()->name << result->getSymbol()->regs[0] << std::endl;
+
 }
 
 std::map<unsigned int, genFunc> map {

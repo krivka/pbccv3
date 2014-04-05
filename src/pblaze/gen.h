@@ -27,11 +27,14 @@ public:
 
 class I::Load : public I {
 public:
+    Load(reg_info *reg, uint8_t value) : m_reg(reg), m_value(value) { }
     virtual string getName() const {
         stringstream s;
-        s << "load ";
+        s << "load " << "sX" << ", " << (int) m_value << "\n";
         return s.str();
     }
+    reg_info *m_reg;
+    uint8_t m_value;
 };
 
 class I::Fetch : public I {
