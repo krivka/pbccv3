@@ -26,20 +26,14 @@ void AssignLiteral(ICode *ic) {
 
     int size = right->getType()->getSize();
 
-    emit << "; " << "Assigning value " << right->getValue()->getUnsignedLong() << " into " << result->getSymbol()->name << "\n";
+
 
     auto getByte = [](unsigned long n, uint8_t byte) {
-        return n & (0xFF << (byte * 8));
+        return (n & (0xFF << (byte * 8))) >> byte * 8;
     };
 
-    for (int i = 0; i < result->getType()->getSize(); i++) {
-        Register **regp = &result->getSymbol()->regs[i];
-        if (!*regp) {
-            *regp = Bank::current()->getFreeRegister();
-            (*regp)->occupy(result, i);
-        }
-
-        emit << I::Load(*regp, getByte(right->getValue()->getUnsignedLong(), i));
+    for (Emitter::i = 0; Emitter::i < result->getType()->getSize(); Emitter::i++) {
+        emit << I::Load(result, getByte(right->getValue()->getUnsignedLong(), Emitter::i));
     }
 }
 
@@ -50,9 +44,7 @@ void Assign(ICode *ic) {
     if (result == right)
         return;
 
-    if (right->isLiteral)
-        AssignLiteral(ic);
-
+    emit << I::Load(result, right);
 
 }
 
@@ -67,7 +59,9 @@ void Add(ICode *ic) {
 
     // += ...
     if (*result != *left) {
-
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
     }
 }
 

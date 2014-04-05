@@ -45,28 +45,33 @@ public:
 
 class I::Load : public I {
 public:
-    Load(reg_info *reg, uint8_t value) : m_reg(reg), m_value(value) { }
+    Load(Operand *left, Operand *right) : m_l(left), m_r(right) { }
+    Load(Operand *left, uint8_t value) : m_l(left), m_value(value) { }
     virtual void emitSelf() const {
-        stringstream ss;
-        ss << "load " << m_reg->getName() << ", " << (int) m_value;
-        string s = ss.str();
-        emit << s;
+        emit << "load " << m_l << ", ";
+        if (m_r) {
+            emit << m_r;
+        }
+        else {
+            emit << (int) m_value;
+        }
     }
 private:
-    reg_info *m_reg;
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
     uint8_t m_value;
 };
 
 class I::Fetch : public I {
 public:
-    Fetch(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
+    Fetch(Operand *left, uint8_t addr) : m_l(left), m_addr(addr) { }
     virtual void emitSelf() const {
         stringstream s;
-        s << "fetch " << m_reg->getName() << ", " << std::hex << (int) m_addr;
-        emit << s.str();
+        s << std::hex << (int) m_addr;
+        emit << "fetch " << m_l << ", " << s.str();
     }
 private:
-    reg_info *m_reg;
+    Operand *m_l;
     uint8_t m_addr;
 };
 

@@ -29,7 +29,8 @@ void pblaze_genCodeLoop(void) {
 
 
 void MemoryCell::clear(reg_info *reg) {
-    emit << I::Fetch(reg, m_pos);
+    Emitter::i = reg->m_index;
+    emit << I::Fetch(reg->m_oper, m_pos);
     Byte::clear();
 }
 
