@@ -27,31 +27,11 @@ void AssignLiteral(ICode *ic) {
 
     emit << "; " << "Assigning value " << right->getValue()->getUnsignedLong() << "\n";
 
-    if (result->isOpGlobal()) {
-        for (int i = 0; i < right->getType()->getSize(); i++) {
-            Allocator::putVal(ic, result, right, i);
-        }
-    }
-    else if (ic->isPointerSet()) {
-        if (result->isInOutRef()) {
-            Allocator::putVal(ic, result, right, 0);
-        }
-        for (int i = 0; i < size; i++) {
-            Allocator::putVal(ic, result, right, i);
-            if (i + 1 < size) {
-                emit << I::Add(ic, 1);
-                Allocator::updateOpInMem(ic, result, i);
-            }
-        }
-        if (!ic->pointerSetOpt(size - 1) && size >1 && result->liveTo() > ic->seq) {
-            emit << I::Sub(ic, size - 1);
-            Allocator::updateOpInMem(ic, result, 0);
-        }
-    }
-    else {
-        for (int i = 0; i < size; i++) {
-            Allocator::putVal(ic, result, right, i);
-        }
+    for (int i = 0; i < result->getType()->getSize(); i++) {
+        if (!result->getSymbol()->regs[i])
+            result->getSymbol()->regs[i] = Bank::current()->getFreeRegister();
+
+//         result->getSymbol()->regs[i]
     }
 }
 
@@ -64,6 +44,8 @@ void Assign(ICode *ic) {
 
     if (right->isLiteral)
         AssignLiteral(ic);
+
+    std::cerr << result->getSymbol()->name << result->getSymbol()->regs[0] << std::endl;
 }
 
 std::map<unsigned int, genFunc> map {

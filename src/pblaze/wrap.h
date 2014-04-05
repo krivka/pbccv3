@@ -239,24 +239,9 @@ public:
     int liveFrom() {
         return OP_LIVEFROM(((::operand*)this));
     }
-    MemoryCell *isOffsetInMem(int offset);
-    Register *isOffsetInReg(int offset);
-    int isOpInReg();
-    void testOperand(int free, bitVect *rUse);
-    void moveToMemory();
-    void moveOffsetToMemory(int offset);
-    void freeFromMemory();
-    void freeOffsetFromMem(int offset);
-    void freeFromReg();
-    void freeOffsetFromReg(int offset);
-    void free() {
-        freeFromReg();
-        freeFromMemory();
-    }
     Value *getValue() {
         return (Value*) OP_VALUE((::operand*)this);
     }
-    MemoryCell *isInMem();
 };
 
 class ICode : public ::iCode {
@@ -301,10 +286,7 @@ public:
     bool isPointerSet() {
         return POINTER_SET(((::iCode*)this));
     }
-    void assignOptimization(Operand *to, Operand *from);
-    Register *getRegister();
     bool isUsedInCurrentInstruction(Operand* op);
-    int pointerSetOpt(int currOffset);
 };
 
 inline Emitter& operator<<(Emitter &e, Symbol *s) {

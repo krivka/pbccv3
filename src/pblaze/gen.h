@@ -27,40 +27,24 @@ public:
 
 class I::Load : public I {
 public:
-    Load(Register *r, Operand *o)
-            : m_reg(r), m_op(o) {
-
-    }
     virtual string getName() const {
         stringstream s;
-        s << "load " << "s" << (int) m_reg->getIndex() <<  ", " << m_op->getValue()->getUnsignedLong() << std::endl;
+        s << "load ";
         return s.str();
     }
-    Register *m_reg;
-    Operand *m_op;
 };
 
 class I::Fetch : public I {
 public:
-    Fetch(Register *r, MemoryCell *m)
-            : m_reg(r), m_cell(m) {
-        if (!m || !r)
-            std::cerr << "NOOOO " << r << " " << m << std::endl;
-    }
     virtual string getName() const {
         stringstream s;
-        s << "fetch " << "s" << (int) m_reg->getIndex() << ", " << m_cell->m_addr << std::endl;
+        s << "fetch ";
         return s.str();
     }
-    Register *m_reg;
-    MemoryCell *m_cell;
 };
 
 class I::Store : public I {
 public:
-    Store(Register *r, MemoryCell *m) {
-
-    }
     virtual string getName() const { return "store"; }
 };
 
