@@ -18,7 +18,7 @@ void genPBlazeCode(ICode *lic);
 inline stringstream& operator<<(stringstream &ss, Operand *o) {
     int i = Emitter::i;
     if (o->isLiteral) {
-        ss << ((o->getValue()->getUnsignedLong() & (0xFF << (i * 8))) >> i * 8);
+        ss << ((o->getValue()->getUnsignedLong() & (0xFF << (i * 8))) >> i * 8) << "'d";
     }
     else if (o->isSymOp()) {
         if (!o->getSymbol()->regs[i]) {
