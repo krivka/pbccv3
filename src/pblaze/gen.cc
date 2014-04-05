@@ -14,7 +14,7 @@ void Function(ICode *ic) {
 
 void Call(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
-    emit << "call " << sym;
+    emit << I::Call(sym);
 }
 
 void AssignLiteral(ICode *ic) {

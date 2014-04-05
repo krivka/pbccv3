@@ -23,6 +23,7 @@ public:
     class Store;
     class Add;
     class Sub;
+    class Call;
 };
 
 class I::Load : public I {
@@ -78,6 +79,18 @@ public:
 
     }
     virtual string getName() const { return "sub"; }
+};
+
+class I::Call : public I {
+public:
+    Call(Symbol *func) : m_func(func) { }
+    virtual string getName() const {
+        stringstream s;
+        s << "call " << m_func->rname;
+        return s.str();
+    }
+private:
+    Symbol *m_func;
 };
 
 inline Emitter& operator<<(Emitter &e, const I &i) {
