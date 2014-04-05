@@ -23,11 +23,14 @@ void pblaze_genCodeLoop(void);
 
 #include <vector>
 #include <iostream>
+#include <sstream>
 
 #define REG_CNT 16
 #define SEND_REG_CNT 4
 #define VAR_REG_CNT REG_CNT - SEND_REG_CNT - 1
 #define PBLAZE_FREG 0
+
+using namespace std;
 
 class Operand;
 class EbbIndex;
@@ -46,6 +49,11 @@ private:
 
 #define Register reg_info
 struct reg_info {
+    string getName() {
+        stringstream ss;
+        ss << "s" << std::hex << (int) sX;
+        return ss.str();
+    }
     bool isFree() {
         return m_free;
     }
@@ -62,6 +70,7 @@ struct reg_info {
     bool m_free { true };
     uint8_t m_index { -1 };
     Operand *m_oper { nullptr };
+    uint8_t sX { -1 };
 };
 
 class Bank {
@@ -73,7 +82,10 @@ public:
 private:
     Register m_regs[REG_CNT];
 
-    Bank() { }
+    Bank() {
+        for (int i = 0; i < REG_CNT; i++)
+            m_regs[i].sX = i;
+    }
     static Bank m_banks[2];
     static bool m_first;
 };

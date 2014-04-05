@@ -30,7 +30,7 @@ public:
     Load(reg_info *reg, uint8_t value) : m_reg(reg), m_value(value) { }
     virtual string getName() const {
         stringstream s;
-        s << "load " << "sX" << ", " << (int) m_value << "\n";
+        s << "load " << m_reg->getName() << ", " << (int) m_value << "\n";
         return s.str();
     }
     reg_info *m_reg;
