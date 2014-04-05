@@ -13,6 +13,10 @@ extern "C" {
 #include "ralloc.h"
 #include "util.h"
 #include <iostream>
+#include <string>
+#include <sstream>
+
+using namespace std;
 
 class EbbIndex;
 class EbBlock;
@@ -197,6 +201,14 @@ public:
     SymLink *getType() {
         return (SymLink*) type;
     }
+    string getLabelName() {
+        if (islbl) {
+            stringstream s;
+            s << key + 100;
+            return s.str();
+        }
+        return "";
+    }
 };
 
 class Value : public ::value {
@@ -302,7 +314,10 @@ public:
 };
 
 inline Emitter& operator<<(Emitter &e, Symbol *s) {
-    e << s->rname;
+    if (s->islbl)
+        e << s->getLabelName();
+    else
+        e << s->rname;
 }
 
 

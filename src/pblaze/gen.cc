@@ -12,6 +12,10 @@ void Function(ICode *ic) {
     emit << sym << ":\n";
 }
 
+void Label(ICode *ic) {
+    emit << "_L" << ic->getLabel() << ":\n";
+}
+
 void Call(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
     emit << I::Call(sym);
@@ -84,6 +88,7 @@ void Sub(ICode *ic) {
 
 std::map<unsigned int, genFunc> map {
     { FUNCTION, Function },
+    { LABEL, Label },
     { CALL, Call },
     { '=', Assign },
     { '+', Add },
