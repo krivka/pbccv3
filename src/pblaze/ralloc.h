@@ -50,7 +50,7 @@ private:
     static Allocator *_self;
 };
 
-class MemoryCell {
+struct Byte {
     void clear() {
         m_free = true;
         m_oper = nullptr;
@@ -61,15 +61,21 @@ class MemoryCell {
         m_index = -1;
         m_oper = nullptr;
     }
+    bool isFree() {
+        return m_free;
+    }
 
     bool m_free { true };
     uint8_t m_index { -1 };
     Operand *m_oper { nullptr };
 };
 
+class MemoryCell : public Byte {
+};
+
 class Memory {
 public:
-    Memory *get() {
+    static Memory *get() {
         return !_self ? (_self = new Memory()) : _self;
     }
     void occupy(Operand *o, int index) {
@@ -79,33 +85,22 @@ public:
 private:
     MemoryCell m_cells[MEMORY_SIZE];
 
-    Memory();
+    Memory() { }
     static Memory *_self;
 };
 
 #define Register reg_info
-struct reg_info {
+struct reg_info : public Byte {
+    void clear() {
+        Memory::get()->occupy(m_oper, m_index);
+        Byte::clear();
+    }
+
     string getName() {
         stringstream ss;
         ss << "s" << std::hex << (int) sX;
         return ss.str();
     }
-    bool isFree() {
-        return m_free;
-    }
-    void clear() {
-        m_free = true;
-        m_oper = nullptr;
-        m_index = 0;
-    }
-    void occupy(Operand *o, int index) {
-        m_free = false;
-        m_oper = o;
-        m_index = index;
-    }
-    bool m_free { true };
-    uint8_t m_index { -1 };
-    Operand *m_oper { nullptr };
     uint8_t sX { -1 };
 };
 
