@@ -74,6 +74,10 @@ void Ifx(ICode *ic) {
 
 }
 
+void InlineAsm(ICode *ic) {
+    emit << ic->inlineAsm;
+}
+
 std::map<unsigned int, genFunc> map {
     { FUNCTION, Function },
     { LABEL, Label },
@@ -85,6 +89,8 @@ std::map<unsigned int, genFunc> map {
     { '-', Sub },
 
     { IFX, Ifx },
+
+    { INLINEASM, InlineAsm },
 };
 
 };

@@ -52,9 +52,9 @@ public:
     Load(Operand *left, uint8_t value) : m_l(left), m_value(value) { }
     virtual string toString() const {
         stringstream s;
-        s << "load ";
+        s << "load\t";
         s << m_l;
-        s << ", ";
+        s << ",\t";
         if (m_r)
             s << m_r;
         else
@@ -72,7 +72,7 @@ public:
     Fetch(Operand *left, uint8_t addr) : m_l(left), m_addr(addr) { }
     virtual string toString() const {
         stringstream s;
-        s << "fetch " << m_l << ", " << std::hex << (int) m_addr;
+        s << "fetch\t" << m_l << ",\t" << std::hex << (int) m_addr;
         return s.str();
     }
 private:
@@ -85,7 +85,7 @@ public:
     Store(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
     virtual string toString() const {
         stringstream s;
-        s << "store " << m_reg->getName() << ", " << std::hex << (int) m_addr;
+        s << "store\t" << m_reg->getName() << ",\t" << std::hex << (int) m_addr;
         return s.str();
     }
 private:
@@ -98,9 +98,9 @@ public:
     Add(Operand *left, Operand *right) : m_l(left), m_r(right) { }
     virtual string toString() const {
         stringstream s;
-        s << "add ";
+        s << "add\t";
         s << m_l;
-        s << ", ";
+        s << ",\t";
         s << m_r;
         return s.str();
     }
@@ -114,7 +114,7 @@ public:
     Sub(Operand *left, Operand *right) : m_l(left), m_r(right) { }
     virtual string toString() const {
         stringstream s;
-        s << "sub " << m_l << ", " << m_r;
+        s << "sub\t" << m_l << ",\t" << m_r;
         return s.str();
     }
 private:
@@ -127,7 +127,7 @@ public:
     Call(Symbol *func) : m_func(func) { }
     virtual string toString() const {
         stringstream s;
-        s << "call " << m_func->rname;
+        s << "call\t" << m_func->rname;
         return s.str();
     }
 private:
@@ -139,7 +139,7 @@ public:
     Jump(Symbol *label) : m_label(label) { }
     virtual string toString() const {
         stringstream s;
-        s << "jump " << m_label->getLabelName();
+        s << "jump\t" << m_label->getLabelName();
         return s.str();
     }
 private:
