@@ -14,9 +14,26 @@ using std::stringstream;
 
 void genPBlazeCode(ICode *lic);
 
+
+inline Emitter& operator<<(Emitter &e, Operand *o) {
+    if (o->isLiteral) {
+        e << ((o->getValue()->getUnsignedLong() & (0xFF << (e.i * 8))) >> e.i * 8);
+    }
+    else if (o->isSymOp()) {
+        if (!o->getSymbol()->regs[e.i]) {
+            o->getSymbol()->regs[e.i] = Bank::current()->getFreeRegister();
+            o->getSymbol()->regs[e.i]->occupy(o, e.i);
+        }
+        e << o->getSymbol()->regs[e.i]->getName();
+    }
+    else {
+        std::cerr << "Unknown Emitter Operand type!\n";
+    }
+}
+
 class I {
 public:
-    virtual string getName() const = 0;
+    virtual void emitSelf() const = 0;
 
     class Load;
     class Fetch;
@@ -29,10 +46,11 @@ public:
 class I::Load : public I {
 public:
     Load(reg_info *reg, uint8_t value) : m_reg(reg), m_value(value) { }
-    virtual string getName() const {
-        stringstream s;
-        s << "load " << m_reg->getName() << ", " << (int) m_value;
-        return s.str();
+    virtual void emitSelf() const {
+        stringstream ss;
+        ss << "load " << m_reg->getName() << ", " << (int) m_value;
+        string s = ss.str();
+        emit << s;
     }
 private:
     reg_info *m_reg;
@@ -42,10 +60,10 @@ private:
 class I::Fetch : public I {
 public:
     Fetch(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
-    virtual string getName() const {
+    virtual void emitSelf() const {
         stringstream s;
         s << "fetch " << m_reg->getName() << ", " << std::hex << (int) m_addr;
-        return s.str();
+        emit << s.str();
     }
 private:
     reg_info *m_reg;
@@ -55,10 +73,10 @@ private:
 class I::Store : public I {
 public:
     Store(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
-    virtual string getName() const {
+    virtual void emitSelf() const {
         stringstream s;
         s << "store " << m_reg->getName() << ", " << std::hex << (int) m_addr;
-        return s.str();
+        emit << s.str();
     }
 private:
     reg_info *m_reg;
@@ -67,10 +85,13 @@ private:
 
 class I::Add : public I {
 public:
-    Add(ICode *ic, unsigned long value) {
-
+    Add(Operand *left, Operand *right) : m_l(left), m_r(right) { }
+    virtual void emitSelf() const {
+        emit << "add " << m_l << ", " << m_r;
     }
-    virtual string getName() const { return "add"; }
+private:
+    Operand *m_l;
+    Operand *m_r;
 };
 
 class I::Sub : public I {
@@ -78,23 +99,27 @@ public:
     Sub(ICode *ic, unsigned long value) {
 
     }
-    virtual string getName() const { return "sub"; }
+    virtual void emitSelf() const {
+        emit << "sub";
+    }
 };
 
 class I::Call : public I {
 public:
     Call(Symbol *func) : m_func(func) { }
-    virtual string getName() const {
+    virtual void emitSelf() const {
         stringstream s;
         s << "call " << m_func->rname;
-        return s.str();
+        emit << s.str();
     }
 private:
     Symbol *m_func;
 };
 
 inline Emitter& operator<<(Emitter &e, const I &i) {
-    e << "\t" << i.getName() << "\n";
+    e << "\t";
+    i.emitSelf();
+    e << "\n";
 }
 
 

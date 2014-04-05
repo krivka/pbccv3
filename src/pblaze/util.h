@@ -12,6 +12,7 @@ public:
     Emitter& operator<<(const char *s);
     Emitter& operator<<(unsigned long s);
     Emitter& operator<<(const std::string &s);
+    static int i;
 private:
 };
 

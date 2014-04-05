@@ -2,6 +2,7 @@
 #include <iostream>
 
 Emitter emit;
+int Emitter::i = 0;
 
 Emitter& Emitter::operator<<(const char* s) {
     std::cerr << s;

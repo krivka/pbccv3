@@ -220,6 +220,9 @@ public:
 
         return false;
     }
+    bool operator!=(Operand &other) {
+        return !(*this == other);
+    }
     Symbol *getSymbol() {
         return static_cast<Symbol*>(OP_SYMBOL(((::operand*)this)));
     }

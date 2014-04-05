@@ -9,7 +9,7 @@ typedef void (*genFunc)(ICode *);
 
 void Function(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
-    emit << sym << ":";
+    emit << sym << ":\n";
 }
 
 void Call(ICode *ic) {
@@ -34,10 +34,11 @@ void AssignLiteral(ICode *ic) {
 
     for (int i = 0; i < result->getType()->getSize(); i++) {
         Register **regp = &result->getSymbol()->regs[i];
-        if (!*regp)
+        if (!*regp) {
             *regp = Bank::current()->getFreeRegister();
+            (*regp)->occupy(result, i);
+        }
 
-        (*regp)->occupy(result, i);
         emit << I::Load(*regp, getByte(right->getValue()->getUnsignedLong(), i));
     }
 }
@@ -55,10 +56,26 @@ void Assign(ICode *ic) {
 
 }
 
+void Add(ICode *ic) {
+    Operand *result = ic->getResult();
+    Operand *left = ic->getLeft();
+    Operand *right = ic->getRight();
+
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::Add(left, right);
+    }
+
+    // += ...
+    if (*result != *left) {
+
+    }
+}
+
 std::map<unsigned int, genFunc> map {
     { FUNCTION, Function },
     { CALL, Call },
     { '=', Assign },
+    { '+', Add },
 };
 
 };
@@ -70,10 +87,12 @@ void genPBlazeCode(ICode *lic) {
         if (ic->generated)
             continue;
 
+
+
         Gen::genFunc gen = Gen::map[ic->op];
         if (gen)
             gen(ic);
-
-        emit << "\n";
+        else
+            std::cerr << "  ; !!! op " << ic->op << "(" << getTableEntry(ic->op)->printName << ") in " << ic->filename << " on line " << ic->lineno << "\n";
     }
 }
