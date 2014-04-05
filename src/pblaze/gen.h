@@ -43,6 +43,7 @@ public:
     class Add;
     class Sub;
     class Call;
+    class Jump;
 };
 
 class I::Load : public I {
@@ -131,6 +132,18 @@ public:
     }
 private:
     Symbol *m_func;
+};
+
+class I::Jump : public I {
+public:
+    Jump(Symbol *label) : m_label(label) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "jump " << m_label->getLabelName();
+        return s.str();
+    }
+private:
+    Symbol *m_label;
 };
 
 inline Emitter& operator<<(Emitter &e, const I &i) {

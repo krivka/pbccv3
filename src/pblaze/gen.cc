@@ -13,12 +13,16 @@ void Function(ICode *ic) {
 }
 
 void Label(ICode *ic) {
-    emit << "_L" << ic->getLabel() << ":\n";
+    emit << ic->getLabel() << ":\n";
 }
 
 void Call(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
     emit << I::Call(sym);
+}
+
+void GoTo(ICode *ic) {
+    emit << I::Jump(ic->getLabel());
 }
 
 void AssignLiteral(ICode *ic) {
@@ -90,6 +94,7 @@ std::map<unsigned int, genFunc> map {
     { FUNCTION, Function },
     { LABEL, Label },
     { CALL, Call },
+    { GOTO, GoTo },
     { '=', Assign },
     { '+', Add },
     { '-', Sub },
