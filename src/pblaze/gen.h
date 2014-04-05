@@ -44,6 +44,8 @@ public:
     class Sub;
     class Call;
     class Jump;
+    class Ret;
+    class Compare;
 };
 
 class I::Load : public I {
@@ -136,14 +138,45 @@ private:
 
 class I::Jump : public I {
 public:
-    Jump(Symbol *label) : m_label(label) { }
+    enum Type {
+        NONE, C,
+    };
+    Jump(Symbol *label, Type t = NONE) : m_label(label), m_type(t) { }
     virtual string toString() const {
         stringstream s;
-        s << "jump\t" << m_label->getLabelName();
+        s << "jump\t";
+        if (m_type == C)
+            s << "C,\t";
+        s << m_label->getLabelName();
         return s.str();
     }
 private:
     Symbol *m_label;
+    Type m_type;
+};
+
+class I::Ret : public I {
+public:
+    Ret() { }
+    virtual string toString() const {
+        return "ret";
+    }
+};
+
+class I::Compare : public I {
+public:
+    Compare(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "compare\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
+        return s.str();
+    }
+private:
+    Operand *m_l;
+    Operand *m_r;
 };
 
 inline Emitter& operator<<(Emitter &e, const I &i) {

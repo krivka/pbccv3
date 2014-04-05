@@ -301,6 +301,12 @@ public:
         }
         return static_cast<ICode*>(ic);
     }
+    Symbol *icTrue() {
+        return static_cast<Symbol*>(IC_TRUE((::iCode*)this));
+    }
+    Symbol *icFalse() {
+        return static_cast<Symbol*>(IC_FALSE((::iCode*)this));
+    }
     bool skipNoOp() {
         unsigned int op = this->op;
         return op == GOTO || op == LABEL || op == FUNCTION ||

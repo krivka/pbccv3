@@ -9,16 +9,37 @@ typedef void (*genFunc)(ICode *);
 
 void Function(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
-    emit << sym << ":\n";
-}
-
-void Label(ICode *ic) {
-    emit << ic->getLabel() << ":\n";
+    emit << "\n" << sym << ":\n";
 }
 
 void Call(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
     emit << I::Call(sym);
+}
+
+void Return(ICode *ic) {
+    Operand *left = ic->getLeft();
+
+    if (!left)
+        return;
+
+    // and now... what
+}
+
+void EndFunction(ICode *ic) {
+    emit << I::Ret();
+}
+
+void Send(ICode *ic) {
+
+}
+
+void Receive(ICode *ic) {
+
+}
+
+void Label(ICode *ic) {
+    emit << ic->getLabel() << ":\n";
 }
 
 void GoTo(ICode *ic) {
@@ -74,14 +95,35 @@ void Ifx(ICode *ic) {
 
 }
 
+void CmpLt(ICode *ic) {
+    if (ic->getNext()->op != IFX)
+        return;
+
+    for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
+        emit << I::Compare(ic->getLeft(), ic->getRight());
+    }
+
+    if (ic->getNext()->icTrue())
+        emit << I::Jump(ic->getNext()->icTrue(), I::Jump::C);
+    else
+        emit << I::Jump(ic->getNext()->icFalse(), I::Jump::C);
+
+    ic->getNext()->generated = 1;
+}
+
 void InlineAsm(ICode *ic) {
     emit << ic->inlineAsm;
 }
 
 std::map<unsigned int, genFunc> map {
     { FUNCTION, Function },
-    { LABEL, Label },
+    { RETURN, Return },
+    { ENDFUNCTION, EndFunction },
     { CALL, Call },
+    { SEND, Send },
+    { RECEIVE, Receive },
+
+    { LABEL, Label },
     { GOTO, GoTo },
 
     { '=', Assign },
@@ -89,6 +131,7 @@ std::map<unsigned int, genFunc> map {
     { '-', Sub },
 
     { IFX, Ifx },
+    { '<', CmpLt },
 
     { INLINEASM, InlineAsm },
 };
