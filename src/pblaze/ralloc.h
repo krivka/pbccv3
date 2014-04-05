@@ -24,6 +24,9 @@ void pblaze_genCodeLoop(void);
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include <boost/concept_check.hpp>
+
+#define MEMORY_SIZE 256
 
 #define REG_CNT 16
 #define SEND_REG_CNT 4
@@ -45,6 +48,39 @@ public:
 private:
     Allocator();
     static Allocator *_self;
+};
+
+class MemoryCell {
+    void clear() {
+        m_free = true;
+        m_oper = nullptr;
+        m_index = 0;
+    }
+    void occupy(Operand *o, int index) {
+        m_free = false;
+        m_index = -1;
+        m_oper = nullptr;
+    }
+
+    bool m_free { true };
+    uint8_t m_index { -1 };
+    Operand *m_oper { nullptr };
+};
+
+class Memory {
+public:
+    Memory *get() {
+        return !_self ? (_self = new Memory()) : _self;
+    }
+    void occupy(Operand *o, int index) {
+
+    }
+
+private:
+    MemoryCell m_cells[MEMORY_SIZE];
+
+    Memory();
+    static Memory *_self;
 };
 
 #define Register reg_info

@@ -29,6 +29,12 @@ void pblaze_genCodeLoop(void) {
 
 
 
+Memory *Memory::_self = nullptr;
+
+
+
+
+
 Bank Bank::m_banks[2];
 bool Bank::m_first = true;
 
