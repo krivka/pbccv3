@@ -41,7 +41,7 @@ void Assign(ICode *ic) {
     Operand *result = ic->getResult();
     Operand *right = ic->getRight();
 
-    if (result == right)
+    if (*result == *right)
         return;
 
     emit << I::Load(result, right);
