@@ -100,7 +100,10 @@ public:
     Add(Operand *left, Operand *right) : m_l(left), m_r(right) { }
     virtual string toString() const {
         stringstream s;
-        s << "add\t";
+        if (Emitter::i == 0)
+            s << "add\t";
+        else
+            s << "addcy\t";
         s << m_l;
         s << ",\t";
         s << m_r;
@@ -116,7 +119,13 @@ public:
     Sub(Operand *left, Operand *right) : m_l(left), m_r(right) { }
     virtual string toString() const {
         stringstream s;
-        s << "sub\t" << m_l << ",\t" << m_r;
+        if (Emitter::i == 0)
+            s << "sub\t";
+        else
+            s << "subcy\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
         return s.str();
     }
 private:
@@ -168,7 +177,10 @@ public:
     Compare(Operand *l, Operand *r) : m_l(l), m_r(r) { }
     virtual string toString() const {
         stringstream s;
-        s << "compare\t";
+        if (Emitter::i == 0)
+            s << "compare\t";
+        else
+            s << "comparecy\t";
         s << m_l;
         s << ",\t";
         s << m_r;
