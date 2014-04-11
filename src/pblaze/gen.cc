@@ -50,11 +50,7 @@ void Assign(ICode *ic) {
     Operand *result = ic->getResult();
     Operand *right = ic->getRight();
 
-    if (*result == *right)
-        return;
-
     emit << I::Load(result, right);
-
 }
 
 void Add(ICode *ic) {
@@ -66,7 +62,7 @@ void Add(ICode *ic) {
         emit << I::Add(left, right);
     }
 
-    // += ...
+    // TODO this is definitely wrong
     if (*result != *left) {
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             emit << I::Load(result, left);
@@ -83,7 +79,7 @@ void Sub(ICode *ic) {
         emit << I::Sub(left, right);
     }
 
-    // += ...
+    // TODO this is definitely wrong
     if (*result != *left) {
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             emit << I::Load(result, left);
@@ -92,7 +88,7 @@ void Sub(ICode *ic) {
 }
 
 void Ifx(ICode *ic) {
-
+    emit << "; this would definitely be a IFX\n";
 }
 
 void CmpLt(ICode *ic) {

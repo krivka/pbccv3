@@ -99,6 +99,8 @@ class I::Add : public I {
 public:
     Add(Operand *left, Operand *right) : m_l(left), m_r(right) { }
     virtual string toString() const {
+        if (*m_l == *m_r)
+            return string({});
         stringstream s;
         if (Emitter::i == 0)
             s << "add\t";
@@ -192,7 +194,11 @@ private:
 };
 
 inline Emitter& operator<<(Emitter &e, const I &i) {
-    e << "\t" << i.toString() << "\n";
+    string code = i.toString();
+    if (code.empty())
+        return e;
+    e << "\t" << code << "\n";
+    return e;
 }
 
 
