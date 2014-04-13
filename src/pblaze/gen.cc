@@ -3,6 +3,9 @@
 #include "wrap.h"
 #include <map>
 
+ICode *currentIC = nullptr;
+static ICode *stepIC();
+
 namespace Gen {
 
 typedef void (*genFunc)(ICode *);
@@ -111,6 +114,10 @@ void CmpLt(ICode *ic) {
     ic->getNext()->generated = 1;
 }
 
+void Cast(ICode *ic) {
+    // Don't forget about bool -> byte casting
+}
+
 void InlineAsm(ICode *ic) {
     emit << ic->inlineAsm;
 }
@@ -138,17 +145,23 @@ std::map<unsigned int, genFunc> map {
 
 };
 
-void genPBlazeCode(ICode *lic) {
-    ICode *ic;
-
-    for (ic = lic; ic; ic = ic->getNext()) {
-        if (ic->generated)
-            continue;
-
-        Gen::genFunc gen = Gen::map[ic->op];
+ICode *stepIC() {
+    if (!currentIC->generated) {
+        Gen::genFunc gen = Gen::map[currentIC->op];
         if (gen)
-            gen(ic);
+            gen(currentIC);
         else
-            std::cerr << "  ; !!! op " << ic->op << "(" << getTableEntry(ic->op)->printName << ") in " << ic->filename << " on line " << ic->lineno << "\n";
+            std::cerr << "  ; !!! op " << currentIC->op << "(" << getTableEntry(currentIC->op)->printName << ") in " << currentIC->filename << " on line " << currentIC->lineno << "\n";
+    }
+    ICode *previous = currentIC;
+    currentIC = currentIC->getNext();
+    return previous;
+}
+
+void genPBlazeCode(ICode *lic) {
+    currentIC = lic;
+
+    while (currentIC) {
+        stepIC();
     }
 }
