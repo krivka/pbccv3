@@ -50,6 +50,12 @@ void Assign(ICode *ic) {
     Operand *result = ic->getResult();
     Operand *right = ic->getRight();
 
+    // for some reason, assignment of a symbolic operand that is neither in memory nor in registers was requested by the frontend
+    // HACK: just ignore
+    // seems to actually mean something
+    if (right->isSymOp() && !Memory::get()->contains(right, 0) && !right->getSymbol()->regs[0])
+        return;
+
     emit << I::Load(result, right);
 }
 
@@ -61,13 +67,7 @@ void Add(ICode *ic) {
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
         emit << I::Add(left, right);
     }
-
-    // TODO this is definitely wrong
-    if (*result != *left) {
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            emit << I::Load(result, left);
-        }
-    }
+    Emitter::i = 0;
 }
 
 void Sub(ICode *ic) {
@@ -84,6 +84,7 @@ void Sub(ICode *ic) {
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             emit << I::Load(result, left);
         }
+        Emitter::i = 0;
     }
 }
 
@@ -92,12 +93,15 @@ void Ifx(ICode *ic) {
 }
 
 void CmpLt(ICode *ic) {
-    if (ic->getNext()->op != IFX)
+    if (ic->getNext()->op != IFX) {
+        std::cerr << "what now?";
         return;
+    }
 
     for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
         emit << I::Compare(ic->getLeft(), ic->getRight());
     }
+    Emitter::i = 0;
 
     if (ic->getNext()->icTrue())
         emit << I::Jump(ic->getNext()->icTrue(), I::Jump::C);
