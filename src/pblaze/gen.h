@@ -150,7 +150,7 @@ private:
 class I::Jump : public I {
 public:
     enum Type {
-        NONE, C,
+        NONE, C, Z, NZ, NC
     };
     Jump(Symbol *label, Type t = NONE) : m_label(label), m_type(t) { }
     virtual string toString() const {

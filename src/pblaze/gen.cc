@@ -92,7 +92,10 @@ void Sub(ICode *ic) {
 }
 
 void Ifx(ICode *ic) {
-    emit << "; this would definitely be a IFX\n";
+    if (ic->getNext()->icTrue())
+        emit << I::Jump(ic->getNext()->icTrue(), I::Jump::C);
+    else
+        emit << I::Jump(ic->getNext()->icFalse(), I::Jump::NC);
 }
 
 void CmpLt(ICode *ic) {
@@ -105,13 +108,6 @@ void CmpLt(ICode *ic) {
         emit << I::Compare(ic->getLeft(), ic->getRight());
     }
     Emitter::i = 0;
-
-    if (ic->getNext()->icTrue())
-        emit << I::Jump(ic->getNext()->icTrue(), I::Jump::C);
-    else
-        emit << I::Jump(ic->getNext()->icFalse(), I::Jump::C);
-
-    ic->getNext()->generated = 1;
 }
 
 void Cast(ICode *ic) {
