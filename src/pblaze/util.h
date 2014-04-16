@@ -11,6 +11,7 @@ class Emitter {
 public:
     Emitter& operator<<(const char &c);
     Emitter& operator<<(const char *s);
+    Emitter& operator<<(unsigned int s);
     Emitter& operator<<(unsigned long s);
     Emitter& operator<<(const std::string &s);
     static int i;

@@ -254,10 +254,7 @@ public:
     bool isGlobalVolatile() {
         return isvolatile && isOpGlobal();
     }
-    bool isInOutRef() {
-        // TODO Don't really know what to do about this, not really necessary
-        return false;
-    }
+    bool isValid();
     int liveTo() {
         return OP_LIVETO((::operand*)this);
     }

@@ -12,3 +12,17 @@ bool ICode::isUsedInCurrentInstruction(Operand* op) {
         return true;
     return false;
 }
+
+bool Operand::isValid() {
+    if (isSymOp()) {
+        // check just the first byte
+        if (Memory::get()->contains(this, 0) || this->getSymbol()->regs[0])
+            return true;
+        return false;
+    }
+    else if (isLiteral) {
+        return true;
+    }
+    cerr << "Unknown Operand type!" << endl;
+    return false;
+}
