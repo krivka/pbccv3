@@ -98,6 +98,13 @@ void Ifx(ICode *ic) {
         emit << I::Jump(ic->getNext()->icFalse(), I::Jump::NC);
 }
 
+void CmpEq(ICode *ic) {
+    for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
+        emit << I::Compare(ic->getLeft(), ic->getRight());
+    }
+    emit << "; comparing " << ic->getRight()->getSymbol()->rname << " to " << ic->getResult()->getSymbol()->rname << "\n";
+}
+
 void CmpLt(ICode *ic) {
     if (ic->getNext()->op != IFX) {
         std::cerr << "what now?";
@@ -112,6 +119,9 @@ void CmpLt(ICode *ic) {
 
 void Cast(ICode *ic) {
     // Don't forget about bool -> byte casting
+    emit << "; casting " << ic->getRight()->getSymbol()->rname << " to " << ic->getResult()->getSymbol()->rname << "\n";
+    emit << "; right: size: " << ic->getRight()->getType()->getSize() << "\n";
+    emit << "; result: size: " << ic->getResult()->getType()->getSize() << "\n";
 }
 
 void InlineAsm(ICode *ic) {
@@ -130,10 +140,13 @@ std::map<unsigned int, genFunc> map {
     { GOTO, GoTo },
 
     { '=', Assign },
+    { CAST, Cast },
+
     { '+', Add },
     { '-', Sub },
 
     { IFX, Ifx },
+    { EQ_OP, CmpEq },
     { '<', CmpLt },
 
     { INLINEASM, InlineAsm },
