@@ -53,6 +53,8 @@ void Assign(ICode *ic) {
     Operand *result = ic->getResult();
     Operand *right = ic->getRight();
 
+    emit << ";;;;; Assign " << right << " to " << result << "\n";
+
     // for some reason, assignment of a symbolic operand that is neither in memory nor in registers was requested by the frontend
     // HACK: just ignore
     // seems to actually mean something
@@ -67,6 +69,8 @@ void Add(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
+    emit << ";;;;; Add " << left << " to " << right << " and store it into " << result << "\n";
+
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
         emit << I::Add(left, right);
     }
@@ -77,6 +81,8 @@ void Sub(ICode *ic) {
     Operand *result = ic->getResult();
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
+
+    emit << ";;;;; Sub " << left << " from " << right << " and store it into " << result << "\n";
 
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
         emit << I::Sub(left, right);
@@ -92,24 +98,27 @@ void Sub(ICode *ic) {
 }
 
 void Ifx(ICode *ic) {
+    emit << ";;;;; Jump if " << ic->getCondition() << "\n";
+    emit << I::Load(ic->getCondition(), ic->getCondition());
     if (ic->getNext()->icTrue())
         emit << I::Jump(ic->getNext()->icTrue(), I::Jump::C);
-    else
+    else if (ic->getNext()->icFalse())
         emit << I::Jump(ic->getNext()->icFalse(), I::Jump::NC);
+    else
+        emit << "WAT DOE\n";
 }
 
 void CmpEq(ICode *ic) {
+
+    emit << ";;;;; Compare " << ic->getLeft() << " to " << ic->getRight() << " and store result into " << ic->getResult() << "\n";
+//     emit << "; comparing " << ic->getRight()->getSymbol()->rname << " to " << ic->getResult()->getSymbol()->rname << "\n";
     for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
         emit << I::Compare(ic->getLeft(), ic->getRight());
     }
-    emit << "; comparing " << ic->getRight()->getSymbol()->rname << " to " << ic->getResult()->getSymbol()->rname << "\n";
 }
 
 void CmpLt(ICode *ic) {
-    if (ic->getNext()->op != IFX) {
-        std::cerr << "what now?";
-        return;
-    }
+    emit << ";;;;; Compare (lower) " << ic->getLeft() << " to " << ic->getRight() << " and store result into " << ic->getResult() << "\n";
 
     for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
         emit << I::Compare(ic->getLeft(), ic->getRight());

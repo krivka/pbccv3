@@ -280,6 +280,9 @@ public:
     Operand *getResult() {
         return static_cast<Operand*>(IC_RESULT(((::iCode*)this)));
     }
+    Operand *getCondition() {
+        return static_cast<Operand*>(IC_COND(((::iCode*)this)));
+    }
     Symbol *getLabel() {
         return static_cast<Symbol*>(IC_LABEL(((::iCode*)this)));
     }
@@ -322,6 +325,16 @@ inline Emitter& operator<<(Emitter &e, Symbol *s) {
         e << s->getLabelName();
     else
         e << s->rname;
+}
+
+inline Emitter& operator<<(Emitter &e, Operand *s) {
+    if (s->isSymOp())
+        e << s->getSymbol()->rname;
+    else if (s->isLiteral)
+        e << s->getValue()->getUnsignedLong();
+    else
+        e << "(unknown operand)";
+    return e;
 }
 
 
