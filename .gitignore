@@ -51,3 +51,5 @@ sdccconf.h
 bin/
 *.[oa]
 pbccv3.kdev4
+# compiler output as well
+*.psm
