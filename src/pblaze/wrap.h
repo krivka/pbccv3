@@ -328,9 +328,9 @@ inline Emitter& operator<<(Emitter &e, Symbol *s) {
 }
 
 inline Emitter& operator<<(Emitter &e, Operand *s) {
-    if (s->isSymOp())
+    if (s && s->isSymOp())
         e << s->getSymbol()->rname;
-    else if (s->isLiteral)
+    else if (s && s->isLiteral)
         e << s->getValue()->getUnsignedLong();
     else
         e << "(unknown operand)";

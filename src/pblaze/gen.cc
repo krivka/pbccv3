@@ -34,11 +34,11 @@ void EndFunction(ICode *ic) {
 }
 
 void Send(ICode *ic) {
-
+    emit << ";;;;; Send " << ic->getLeft() << "\n";
 }
 
 void Receive(ICode *ic) {
-
+    emit << ";;;;; Receive " << ic->getResult()->getSymbol() << "\n";
 }
 
 void Label(ICode *ic) {
