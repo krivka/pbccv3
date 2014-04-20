@@ -61,7 +61,9 @@ void Assign(ICode *ic) {
     if (right->isSymOp() && !Memory::get()->contains(right, 0) && !right->getSymbol()->regs[0])
         return;
 
-    emit << I::Load(result, right);
+    for (Emitter::i = 0; Emitter::i < result->getType()->getSize(); Emitter::i++) {
+        emit << I::Load(result, right);
+    }
 }
 
 void Add(ICode *ic) {
