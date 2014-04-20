@@ -51,16 +51,12 @@ public:
 class I::Load : public I {
 public:
     Load(Operand *left, Operand *right) : m_l(left), m_r(right) { }
-    Load(Operand *left, uint8_t value) : m_l(left), m_value(value) { }
     virtual string toString() const {
         stringstream s;
         s << "load\t";
         s << m_l;
         s << ",\t";
-        if (m_r)
-            s << m_r;
-        else
-            s << (int) m_value;
+        s << m_r;
         return s.str();
     }
 private:
