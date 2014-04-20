@@ -152,8 +152,12 @@ public:
     virtual string toString() const {
         stringstream s;
         s << "jump\t";
-        if (m_type == C)
-            s << "C,\t";
+        switch (m_type) {
+            case C: s << "C,\t"; break;
+            case Z: s << "Z,\t"; break;
+            case NC: s << "NC,\t"; break;
+            case NZ: s << "NZ,\t"; break;
+        }
         s << m_label->getLabelName();
         return s.str();
     }

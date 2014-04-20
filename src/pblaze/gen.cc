@@ -101,13 +101,32 @@ void Sub(ICode *ic) {
 
 void Ifx(ICode *ic) {
     emit << ";;;;; Jump if " << ic->getCondition() << "\n";
+    // if we depend on the result of the previous operation, we should already
+    // have what we need in the zero flag (except LT/GT)
+    if (ic->getPrev()->getResult() == ic->getCondition()) {
+        if (ic->getPrev()->op == '<') {
+            if (ic->icTrue())
+                emit << I::Jump(ic->icTrue(), I::Jump::C);
+            else
+                emit << I::Jump(ic->icFalse(), I::Jump::NC);
+        }
+        else if (ic->getPrev()->op == '>') {
+            if (ic->icTrue())
+                emit << I::Jump(ic->icTrue(), I::Jump::NC);
+            else
+                emit << I::Jump(ic->icFalse(), I::Jump::C);
+        }
+        else {
+            if (ic->icTrue())
+                emit << I::Jump(ic->icTrue(), I::Jump::Z);
+            else
+                emit << I::Jump(ic->icFalse(), I::Jump::NZ);
+        }
+    }
+    else {
+        std::cerr << "; Condition too complex\n";
+    }
     emit << I::Load(ic->getCondition(), ic->getCondition());
-    if (ic->getNext()->icTrue())
-        emit << I::Jump(ic->getNext()->icTrue(), I::Jump::C);
-    else if (ic->getNext()->icFalse())
-        emit << I::Jump(ic->getNext()->icFalse(), I::Jump::NC);
-    else
-        emit << "WAT DOE\n";
 }
 
 void CmpEq(ICode *ic) {
