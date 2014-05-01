@@ -250,9 +250,8 @@ public:
     void dump( void ) {
         printf("////// PicoBlaze processor state dump\n");
         printf("// This file is generated. Any changes done will be overwritten\n\n");
-        printf("#include <stdbool.h>\n");
-        printf("#include <stdint.h>\n\n");
-        printf("uint8_t registers[2][16] = {\n");
+        printf("#include <vector>\n\n");
+        printf("std::vector<std::vector<uint8_t>> registers = {\n");
         for (char bank = 0; bank <= 1; bank++) {
             printf("\t{", bank);
             for(int i = 0; i < MAXREG; i++) {
@@ -267,7 +266,7 @@ public:
             else
                 printf("\n};\n");
         }
-        printf("\nuint8_t scratchpad_memory[%d] = {\n", MAXSCR);
+        printf("\nstd::vector<uint8_t> scratchpad_memory = {\n", MAXSCR);
         printf("///////////////  0x0   0x1   0x2   0x3   0x4   0x5   0x6   0x7   0x8   0x9   0xA   0xB   0xC   0xD   0xE   0xF");
         for (int i = 0; i < MAXSCR; i++) {
             if (i % 16 == 0)
