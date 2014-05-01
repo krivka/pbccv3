@@ -1,9 +1,9 @@
 #include <stdint.h>
-#include <stdio.h>
+#include <iostream>
 
 #include TESTFILE
 #include TESTRESULT
 
 int main(void) {
-    return 0;
+    return 1;
 }

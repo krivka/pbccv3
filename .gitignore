@@ -53,3 +53,5 @@ bin/
 pbccv3.kdev4
 # compiler output as well
 *.psm
+*.err
+*.trl
