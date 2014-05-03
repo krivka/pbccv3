@@ -551,22 +551,11 @@ void pblaze_glue(void)
     dbuf_init(&vBuf, 4096);
     dbuf_init(&ovrBuf, 4096);
 
-    /* print the global struct definitions */
-    if (options.debug)
-    cdbStructBlock(0);
-
     /* PENDING: this isn't the best place but it will do */
     if (port->general.glue_up_main) {
-    /* create the interrupt vector table */
-    pblaze_createInterruptVect(&vBuf);
+        /* create the interrupt vector table */
+        pblaze_createInterruptVect(&vBuf);
     }
-
-    /* emit code for the all the variables declared */
-    pblaze_emitMaps();
-    /* do the overlay segments */
-    pblaze_emitOverlay(&ovrBuf);
-
-    outputDebugSymbols();
 
     /* now put it all together into the assembler file */
     /* create the assembler file name */
@@ -574,16 +563,16 @@ void pblaze_glue(void)
     /* -o option overrides default name? */
     dbuf_init(&asmFileName, PATH_MAX);
     if ((noAssemble || options.c1mode) && fullDstFileName) {
-    dbuf_append_str(&asmFileName, fullDstFileName);
+        dbuf_append_str(&asmFileName, fullDstFileName);
     } else {
-    dbuf_append_str(&asmFileName, dstFileName);
-    dbuf_append_str(&asmFileName, port->assembler.file_ext);
+        dbuf_append_str(&asmFileName, dstFileName);
+        dbuf_append_str(&asmFileName, port->assembler.file_ext);
     }
 
     if (!(asmFile = fopen(dbuf_c_str(&asmFileName), "w"))) {
-    werror(E_FILE_OPEN_ERR, dbuf_c_str(&asmFileName));
-    dbuf_destroy(&asmFileName);
-    exit(EXIT_FAILURE);
+        werror(E_FILE_OPEN_ERR, dbuf_c_str(&asmFileName));
+        dbuf_destroy(&asmFileName);
+        exit(EXIT_FAILURE);
     }
     dbuf_destroy(&asmFileName);
 
@@ -593,18 +582,7 @@ void pblaze_glue(void)
 
     /* Let the port generate any global directives, etc. */
     if (port->genAssemblerPreamble) {
-    port->genAssemblerPreamble(asmFile);
-    }
-
-    /* print the global variables in this module */
-    //pblaze_printPublics (asmFile);
-    if (port->assembler.externGlobal)
-    pblaze_printExterns(asmFile);
-
-
-    /* If the port wants to generate any extra areas, let it do so. */
-    if (port->extraAreas.genExtraAreaDeclaration) {
-    port->extraAreas.genExtraAreaDeclaration(asmFile, pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type));
+        port->genAssemblerPreamble(asmFile);
     }
 
     /* copy global & static initialisations */
@@ -613,51 +591,40 @@ void pblaze_glue(void)
     fprintf(asmFile, "%s", pblaze_iComments2);
 
     if (pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type)) {
-    if (port->genInitStartup) {
-        port->genInitStartup(asmFile);
-    } else {
-
-        // if the port can copy the XINIT segment to XISEG
-        if (port->genXINIT) {
-        port->genXINIT(asmFile);
+        if (port->genInitStartup) {
+            port->genInitStartup(asmFile);
+        } else {
+            // if the port can copy the XINIT segment to XISEG
+            if (port->genXINIT) {
+                port->genXINIT(asmFile);
+            }
         }
-    }
     }
     dbuf_write_and_destroy(&statsg->oBuf, asmFile);
 
     if (port->general.glue_up_main && pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type)) {
-    /* This code is generated in the post-static area.
-     * This area is guaranteed to follow the static area
-     * by the ugly shucking and jiving about 20 lines ago.
-     */
+        /* This code is generated in the post-static area.
+        * This area is guaranteed to follow the static area
+        * by the ugly shucking and jiving about 20 lines ago.
+        */
 
-    //fprintf(asmFile, "\tLOAD\tsF, %s%02x\n", pblaze_options.dialect ? "" : "$", MEMSIZE - 1);
-    fprintf(asmFile, "\tJUMP\t__sdcc_program_startup\n");
+        //fprintf(asmFile, "\tLOAD\tsF, %s%02x\n", pblaze_options.dialect ? "" : "$", MEMSIZE - 1);
+        fprintf(asmFile, "\tJUMP\t__sdcc_program_startup\n");
     }
 
     fprintf(asmFile, "%s" "; Home\n" "%s", pblaze_iComments2, pblaze_iComments2);
     dbuf_write_and_destroy(&home->oBuf, asmFile);
 
     if (pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type)) {
-    /* entry point @ start of HOME */
-    fprintf(asmFile, "__sdcc_program_startup:\n");
+        /* entry point @ start of HOME */
+        fprintf(asmFile, "__sdcc_program_startup:\n");
 
-    /* put in jump or call to main */
-#if 0
-    if (options.mainreturn) {
-        fprintf(asmFile, "\tJUMP\t_main\n");    /* needed? */
-        if (!options.noCcodeInAsm)
-        fprintf(asmFile, ";\treturn from main will return to caller\n");
-    } else {
-#endif
+        /* put in jump or call to main */
         fprintf(asmFile, "\tCALL\t_main\n");
         if (!options.noCcodeInAsm)
         fprintf(asmFile, ";\treturn from main will lock up\n");
         fprintf(asmFile, "__sdcc_loop:\n");
         fprintf(asmFile, "\tJUMP\t__sdcc_loop\n");
-#if 0
-    }
-#endif
     }
     /* copy over code */
     fprintf(asmFile, "%s", pblaze_iComments2);
@@ -666,7 +633,7 @@ void pblaze_glue(void)
     dbuf_write_and_destroy(&code->oBuf, asmFile);
 
     if (port->genAssemblerEnd) {
-    port->genAssemblerEnd(asmFile);
+        port->genAssemblerEnd(asmFile);
     }
 
     /* copy the interrupt vector table */

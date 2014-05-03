@@ -78,11 +78,12 @@ Register* Bank::getFreeRegister(int seq) {
     Register *toFree = m_regs;
 
     for (int i = 0; i < VAR_REG_CNT; i++) {
-        if (m_regs[i].m_oper && m_regs[i].m_oper->getSymbol()->liveFrom < latest) {
+        if (m_regs[i].m_oper && m_regs[i].m_oper->getSymbol()->liveTo < latest) {
             toFree = &m_regs[i];
-            latest = m_regs[i].m_oper->getSymbol()->liveFrom;
+            latest = m_regs[i].m_oper->getSymbol()->liveTo;
         }
     }
+    cerr << "WILL FREE " << toFree->getName() << "\n";
     toFree->clear();
     return toFree;
 }

@@ -61,9 +61,25 @@ void Assign(ICode *ic) {
     if (right->isSymOp() && !Memory::get()->contains(right, 0) && !right->getSymbol()->regs[0])
         return;
 
-    for (Emitter::i = 0; Emitter::i < result->getType()->getSize(); Emitter::i++) {
-        emit << I::Load(result, right);
+    if (ic->isPointerSet()) {
+        emit << "TODO: assignment to a pointer\n";
     }
+    else {
+        for (Emitter::i = 0; Emitter::i < result->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, right);
+        }
+    }
+}
+
+void AddressOf(ICode *ic) {
+
+}
+
+void Cast(ICode *ic) {
+    // Don't forget about bool -> byte casting
+    emit << "; casting " << ic->getRight()->getSymbol()->rname << " to " << ic->getResult()->getSymbol()->rname << "\n";
+    emit << "; right: size: " << ic->getRight()->getType()->getSize() << "\n";
+    emit << "; result: size: " << ic->getResult()->getType()->getSize() << "\n";
 }
 
 void Add(ICode *ic) {
@@ -147,13 +163,6 @@ void CmpLt(ICode *ic) {
     Emitter::i = 0;
 }
 
-void Cast(ICode *ic) {
-    // Don't forget about bool -> byte casting
-    emit << "; casting " << ic->getRight()->getSymbol()->rname << " to " << ic->getResult()->getSymbol()->rname << "\n";
-    emit << "; right: size: " << ic->getRight()->getType()->getSize() << "\n";
-    emit << "; result: size: " << ic->getResult()->getType()->getSize() << "\n";
-}
-
 void InlineAsm(ICode *ic) {
     emit << ic->inlineAsm;
 }
@@ -170,6 +179,7 @@ std::map<unsigned int, genFunc> map {
     { GOTO, GoTo },
 
     { '=', Assign },
+    { ADDRESS_OF, AddressOf },
     { CAST, Cast },
 
     { '+', Add },
