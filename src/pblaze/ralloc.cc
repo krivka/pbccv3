@@ -45,6 +45,12 @@ MemoryCell* Memory::contains(Operand* o, int index) {
     return nullptr;
 }
 
+void Memory::allocateGlobal(Operand* o) {
+    for (int i = 0; i < o->getSymbol()->getType()->getSize(); i++) {
+        occupy(o, i);
+    }
+}
+
 
 
 
@@ -56,6 +62,13 @@ Memory *Memory::_self = nullptr;
 
 Bank Bank::m_banks[2];
 bool Bank::m_first = true;
+
+void Bank::swap() {
+    /* Notes:
+     * Switching occurs in main, only
+     * main has to switch before and after calling any other function
+     */
+}
 
 Register* Bank::getFreeRegister(int seq) {
     // first look for a free register

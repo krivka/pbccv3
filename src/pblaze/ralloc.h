@@ -89,6 +89,7 @@ public:
         throw "Ran out of static memory";
     }
     MemoryCell *contains(Operand *o, int index);
+    void allocateGlobal(Operand *o);
 
 private:
     MemoryCell m_cells[MEMORY_SIZE];
@@ -99,6 +100,15 @@ private:
         }
     }
     static Memory *_self;
+};
+
+class Stack {
+public:
+    void pushVariable(Operand *op);
+    void callFunction();
+    void returnFromFunction();
+private:
+
 };
 
 #define Register reg_info
@@ -124,7 +134,9 @@ public:
     static Bank *current() {
         return m_first ? m_banks : m_banks + 1;
     }
+    static void swap();
     Register *getFreeRegister(int seq = -1);
+    Register *currentStackPointer();
 private:
     Register m_regs[REG_CNT];
 
