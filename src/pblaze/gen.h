@@ -15,6 +15,10 @@ using std::stringstream;
 void genPBlazeCode(ICode *lic);
 
 
+inline stringstream& operator<<(stringstream &ss, Register *r) {
+    ss << r->getName();
+}
+
 inline stringstream& operator<<(stringstream &ss, Operand *o) {
     int i = Emitter::i;
     if (o->isLiteral) {
@@ -25,7 +29,7 @@ inline stringstream& operator<<(stringstream &ss, Operand *o) {
             o->getSymbol()->regs[i] = Bank::current()->getFreeRegister();
             o->getSymbol()->regs[i]->occupy(o, i);
         }
-        ss << o->getSymbol()->regs[i]->getName();
+        ss << o->getSymbol()->regs[i];
     }
     else {
         std::cerr << "Unknown Emitter Operand type!\n";
@@ -51,10 +55,15 @@ public:
 class I::Load : public I {
 public:
     Load(Operand *left, Operand *right) : m_l(left), m_r(right) { }
+    Load(Register *reg, Operand *right) : m_reg(reg), m_r(right) { }
     virtual string toString() const {
         stringstream s;
         s << "load\t";
-        s << m_l;
+        if (m_l)
+            s << m_l;
+        else {
+            s << m_reg;
+        }
         s << ",\t";
         s << m_r;
         return s.str();
@@ -62,19 +71,27 @@ public:
 private:
     Operand *m_l { nullptr };
     Operand *m_r { nullptr };
+    Register *m_reg;
     uint8_t m_value;
 };
 
 class I::Fetch : public I {
 public:
-    Fetch(Operand *left, uint8_t addr) : m_l(left), m_addr(addr) { }
+    Fetch(Register *reg, Operand *op) : m_reg(reg), m_op(op) { }
+    Fetch(Operand *left, uint8_t addr) : m_op(left), m_addr(addr) { }
     virtual string toString() const {
         stringstream s;
-        s << "fetch\t" << m_l << ",\t" << std::hex << (int) m_addr;
+        s << "fetch\t";
+        if (m_op)
+            s << m_op;
+        else
+            s << m_reg;
+        s << ",\t" << std::hex << (int) m_addr;
         return s.str();
     }
 private:
-    Operand *m_l;
+    Register *m_reg;
+    Operand *m_op;
     uint8_t m_addr;
 };
 

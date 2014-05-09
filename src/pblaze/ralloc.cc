@@ -45,6 +45,11 @@ MemoryCell* Memory::contains(Operand* o, int index) {
     return nullptr;
 }
 
+
+
+
+Memory *Memory::_self = nullptr;
+
 void Memory::allocateGlobal(Operand* o) {
     for (int i = 0; i < o->getSymbol()->getType()->getSize(); i++) {
         occupy(o, i);
@@ -53,9 +58,25 @@ void Memory::allocateGlobal(Operand* o) {
 
 
 
+Stack *Stack::_self = nullptr;
 
-Memory *Memory::_self = nullptr;
+Stack* Stack::instance() {
+    if (!_self)
+        _self = new Stack;
+    return _self;
+}
 
+void Stack::callFunction() {
+    
+}
+
+void Stack::pushVariable(Operand* op) {
+
+}
+
+void Stack::returnFromFunction() {
+
+}
 
 
 
@@ -102,6 +123,9 @@ Register* Bank::getFreeRegister(int seq) {
 }
 
 void Register::clear() {
+    if (!m_oper || !m_oper->isSymOp() || !m_oper->getSymbol()->regs[m_index]) 
+        return;
+
     MemoryCell *cell = Memory::get()->occupy(m_oper, m_index);
 
     int tempI = Emitter::i;
@@ -112,3 +136,14 @@ void Register::clear() {
 
     Byte::clear();
 }
+
+bool reg_info::containsLive(ICode *ic) {
+    if (m_oper && ic->seq > m_oper->liveTo())
+        return false;
+    return true;
+}
+
+void reg_info::moveToMemory() {
+
+}
+

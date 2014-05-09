@@ -198,6 +198,14 @@ return IS_VOLATILE(this);
 
 class Symbol : public ::symbol {
 public:
+    bool operator==(const Symbol &o) {
+        if (type == o.type && 0 == strcmp(rname, o.rname))
+            return true;
+        return false;
+    }
+    bool operator!=(const Symbol &o) {
+        return !(*this == o);
+    }
     SymLink *getType() {
         return (SymLink*) type;
     }
@@ -210,10 +218,31 @@ public:
         }
         return "";
     }
+    Symbol *localOf() {
+        return (Symbol*) localof;
+    }
 };
 
 class Value : public ::value {
 public:
+    char *getName() {
+        return name;
+    }
+    SymLink *getType() {
+        return (SymLink*) type;
+    }
+    SymLink *getTypeEnd() {
+        return (SymLink*) type;
+    }
+    Symbol *getSymbol() {
+        return (Symbol*) sym;
+    }
+    Value *getNext() {
+        return (Value*) next;
+    }
+    bool isVariableLength() {
+        return vArgs;
+    }
     unsigned long getUnsignedLong() {
         return ulFromVal((::value*)this);
     }
@@ -316,6 +345,9 @@ public:
     }
     bool isPointerSet() {
         return POINTER_SET(((::iCode*)this));
+    }
+    bool isInFunctionCall() {
+        return isiCodeInFunctionCall((::iCode*)this);
     }
     bool isUsedInCurrentInstruction(Operand* op);
 };

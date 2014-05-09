@@ -104,11 +104,12 @@ private:
 
 class Stack {
 public:
+    static Stack *instance();
     void pushVariable(Operand *op);
     void callFunction();
     void returnFromFunction();
 private:
-
+    static Stack *_self;
 };
 
 #define Register reg_info
@@ -120,6 +121,8 @@ struct reg_info : public Byte {
             cell->clear(this);
         Byte::occupy(o, index);
     }
+    bool containsLive(ICode *ic);
+    void moveToMemory();
 
     string getName() {
         stringstream ss;
@@ -137,6 +140,9 @@ public:
     static void swap();
     Register *getFreeRegister(int seq = -1);
     Register *currentStackPointer();
+    Register *regs() {
+        return m_regs;
+    }
 private:
     Register m_regs[REG_CNT];
 

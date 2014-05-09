@@ -25,7 +25,7 @@
 #include "glue.h"
 
 
-#define SEND_REG_COUNT 4
+#define SEND_REG_COUNT 15
 
 void pblaze_init(void) {
 }
@@ -85,7 +85,7 @@ int pblaze_reg_parm(struct sym_link *link, bool reentrant) {
             return 0;
         }
         regParmFlg += size;
-        return 1;
+        return regParmFlg - size + 1;
     }
     
     return 0;

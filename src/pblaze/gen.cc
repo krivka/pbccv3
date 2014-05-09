@@ -16,8 +16,9 @@ void Function(ICode *ic) {
 }
 
 void Call(ICode *ic) {
-    Symbol *sym = ic->getLeft()->getSymbol();
-    emit << I::Call(sym);
+    Stack::instance()->callFunction();
+    emit << I::Call(ic->getLeft()->getSymbol());
+    Stack::instance()->returnFromFunction();
 }
 
 void Return(ICode *ic) {
@@ -34,7 +35,34 @@ void EndFunction(ICode *ic) {
 }
 
 void Send(ICode *ic) {
-    emit << ";;;;; Send " << ic->getLeft() << "\n";
+    static unsigned lastReg = 0;
+    if (!ic->getPrev() || ic->getPrev()->op != SEND) {
+        lastReg = 0;
+    }
+    for (int i = 0; i < ic->getLeft()->getType()->getSize(); i++) {
+        Register *reg = &Bank::current()->regs()[lastReg];
+        reg->clear();
+        reg->occupy(ic->getLeft(), i);
+        MemoryCell *m = Memory::get()->contains(ic->getLeft(), i);
+        if (m)
+            emit << I::Fetch(reg, ic->getLeft());
+        else
+            emit << I::Load(reg, ic->getLeft());
+        lastReg++;
+    }
+    emit << ";;;;; Send argreg" << (unsigned) ic->argreg << " of " << ic->getLeft() << " and the lastReg is: " << lastReg << "\n";
+    if (ic->getNext() && ic->getNext()->op != SEND) {
+        // put the rest of the registers on the current stack
+        for( ; lastReg < VAR_REG_CNT; lastReg++) {
+            Register *reg = &Bank::current()->regs()[lastReg];
+            if (reg->m_oper) {
+                emit << ";! " << (unsigned) reg->m_oper->liveTo() << " : " << (unsigned) ic->seq << "\n";
+            }
+            if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
+                reg->clear();
+            }
+        }
+    }
 }
 
 void Receive(ICode *ic) {
@@ -61,9 +89,15 @@ void Assign(ICode *ic) {
     if (right->isSymOp() && !Memory::get()->contains(right, 0) && !right->getSymbol()->regs[0])
         return;
 
+    // stuffing parameters in the call
+    if (ic->isInFunctionCall()) {
+        // Don't bother, these go on stack
+    }
+    // assignment to a pointer
     if (ic->isPointerSet()) {
         emit << "TODO: assignment to a pointer\n";
     }
+    // assignment to a regular local variable
     else {
         for (Emitter::i = 0; Emitter::i < result->getType()->getSize(); Emitter::i++) {
             emit << I::Load(result, right);
