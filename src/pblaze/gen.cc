@@ -66,7 +66,12 @@ void Send(ICode *ic) {
 }
 
 void Receive(ICode *ic) {
-    emit << ";;;;; Receive " << ic->getResult()->getSymbol() << "\n";
+    emit << ";;;;; Receive " << ic->getResult()->getSymbol() << " that is " << (unsigned) ic->argreg << "\n";
+    for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
+        Register *reg = &Bank::current()->regs()[ic->argreg - 1 + i];
+        reg->occupy(ic->getResult(), i);
+        ic->getResult()->getSymbol()->regs[i] = reg;
+    }
 }
 
 void Label(ICode *ic) {
