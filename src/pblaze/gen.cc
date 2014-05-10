@@ -19,6 +19,17 @@ void Function(ICode *ic) {
 void Call(ICode *ic) {
     Stack::instance()->callFunction();
     emit << I::Call(ic->getLeft()->getSymbol());
+    // treat the previous variables as invalid (stored on stack)
+    for (int i = ic->getResult()->getType()->getSize(); i < VAR_REG_CNT; i++) {
+        if (Bank::current()->regs()[i].m_oper)
+            Bank::current()->regs()[i].m_oper->getSymbol()->regs[Bank::current()->regs()[i].m_index] = nullptr;
+        Bank::current()->regs()[i].purge();
+    }
+    for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
+        Register *reg = &Bank::current()->regs()[i];
+        ic->getResult()->getSymbol()->regs[i] = reg;
+        reg->occupy(ic->getResult(), i);
+    }
     Stack::instance()->returnFromFunction();
 }
 
@@ -90,7 +101,10 @@ void Send(ICode *ic) {
         for( ; lastReg < VAR_REG_CNT; lastReg++) {
             Register *reg = &Bank::current()->regs()[lastReg];
             if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
+                Symbol *sym = reg->m_oper->getSymbol();
+                int index = reg->m_index;
                 reg->clear();
+                sym->regs[index] = nullptr;
             }
         }
     }
@@ -167,10 +181,14 @@ void Add(ICode *ic) {
 
     emit << ";;;;; Add " << left << " to " << right << " and store it into " << result << "\n";
 
-    if (*result != *left) {
+    if (*result != *left &&
+        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             emit << I::Load(result, left);
         }
+    }
+    else {
+        result = left;
     }
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
         emit << I::Add(result, right);
@@ -182,12 +200,15 @@ void Sub(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    emit << ";;;;; Add " << left << " to " << right << " and store it into " << result << "\n";
-
-    if (*result != *left) {
+    emit << ";;;;; Sub " << right << " from " << left << " and store it into " << result << "\n";
+    if (*result != *left &&
+        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             emit << I::Load(result, left);
         }
+    }
+    else {
+        result = left;
     }
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
         emit << I::Sub(result, right);
