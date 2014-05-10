@@ -83,6 +83,7 @@ class I::Star : public I {
 public:
     Star(Operand *left, Operand *right) : m_l(left), m_r(right) { }
     Star(Register *reg, Operand *right) : m_reg(reg), m_r(right) { }
+    Star(Register *reg, Register *right) : m_reg(reg), m_rightreg(right) { }
     virtual string toString() const {
         stringstream s;
         s << "star\t";
@@ -92,15 +93,22 @@ public:
             s << m_reg;
         }
         s << ",\t";
-        s << m_r;
+        if (m_r)
+            s << m_r;
+        else
+            s << m_rightreg;
         // COMMENT
-        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "=" << m_r->friendlyName();
+        if (m_r)
+            s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "=" << m_r->friendlyName();
+        else
+            s << "\t\t; changing banks";
         return s.str();
     }
 private:
     Operand *m_l { nullptr };
     Operand *m_r { nullptr };
     Register *m_reg;
+    Register *m_rightreg;
 };
 
 class I::Fetch : public I {

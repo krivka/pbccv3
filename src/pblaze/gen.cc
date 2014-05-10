@@ -49,13 +49,25 @@ void Call(ICode *ic) {
     if (isMain)
         Bank::swap();
     emit << I::Call(ic);
-    if (isMain)
+    if (isMain) {
+        // treat the previous variables as invalid (stored on stack)
+        for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
+            if (Bank::current()->regs()[i].m_oper)
+                Bank::current()->regs()[i].m_oper->getSymbol()->regs[Bank::current()->regs()[i].m_index] = nullptr;
+            Bank::current()->regs()[i].purge();
+        }
+        for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
+            emit << I::Star(&Bank::current()->regs()[i], &Bank::current()->regs()[i]);
+        }
         Bank::swap();
-    // treat the previous variables as invalid (stored on stack)
-    for (int i = 0; i < VAR_REG_CNT; i++) {
-        if (Bank::current()->regs()[i].m_oper)
-            Bank::current()->regs()[i].m_oper->getSymbol()->regs[Bank::current()->regs()[i].m_index] = nullptr;
-        Bank::current()->regs()[i].purge();
+    }
+    else {
+        // treat the previous variables as invalid (stored on stack)
+        for (int i = 0; i < VAR_REG_CNT; i++) {
+            if (Bank::current()->regs()[i].m_oper)
+                Bank::current()->regs()[i].m_oper->getSymbol()->regs[Bank::current()->regs()[i].m_index] = nullptr;
+            Bank::current()->regs()[i].purge();
+        }
     }
     for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
         Register *reg = &Bank::current()->regs()[i];
