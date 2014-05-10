@@ -28,8 +28,7 @@ void pblaze_genCodeLoop(void);
 #define MEMORY_SIZE 256
 
 #define REG_CNT 16
-#define SEND_REG_CNT 4
-#define VAR_REG_CNT REG_CNT - SEND_REG_CNT - 1
+#define VAR_REG_CNT REG_CNT - 1
 #define PBLAZE_FREG 0
 
 using namespace std;

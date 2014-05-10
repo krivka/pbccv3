@@ -140,7 +140,7 @@ void Send(ICode *ic) {
         ICode *currentFunc = ic;
         callIC = ic;
         while(callIC) {
-            if (callIC->op == CALL) {
+            if (callIC->op == CALL || callIC->op == PCALL) {
                 emit << "\t; Call " << callIC->getLeft()->friendlyName() << " starting:\n";
                 break;
             }
@@ -206,8 +206,9 @@ void Assign(ICode *ic) {
     // for some reason, assignment of a symbolic operand that is neither in memory nor in registers was requested by the frontend
     // HACK: just ignore
     // seems to actually mean something
-    if (right->isSymOp() && !Memory::get()->contains(right, 0) && !right->getSymbol()->regs[0])
+    if (right->isSymOp() && !right->getType()->isFunc() && !Memory::get()->contains(right, 0) && !right->getSymbol()->regs[0]) {
         return;
+    }
 
     // stuffing parameters in the call
     if (ic->isInFunctionCall()) {
@@ -217,7 +218,7 @@ void Assign(ICode *ic) {
     else if (ic->isPointerSet()) {
         emit << "TODO: assignment to a pointer\n";
     }
-    // assignment to temporary local variable
+    // assignment from a temporary local variable
     else if (right->isITmp()) {
         for (int i = 0; i < right->getType()->getSize(); i++) {
             result->getSymbol()->regs[i] = right->getSymbol()->regs[i];
@@ -334,6 +335,7 @@ std::map<unsigned int, genFunc> map {
     { RETURN, Return },
     { ENDFUNCTION, EndFunction },
     { CALL, Call },
+    { PCALL, Call },
     { SEND, Send },
     { RECEIVE, Receive },
 

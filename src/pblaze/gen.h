@@ -21,7 +21,14 @@ inline stringstream& operator<<(stringstream &ss, Register *r) {
 
 inline stringstream& operator<<(stringstream &ss, Operand *o) {
     int i = Emitter::i;
-    if (o->isLiteral) {
+    if (o->getType()->isFunc()) {
+        ss << o->getSymbol()->rname;
+        if (!i)
+            ss << "'lower";
+        else
+            ss << "'upper";
+    }
+    else if (o->isLiteral) {
         ss << "0x" << std::hex << ((o->getValue()->getUnsignedLong() & (0xFF << (i << 3))) >> (i << 3));
     }
     else if (o->isSymOp()) {
@@ -207,9 +214,20 @@ public:
     Call(ICode *ic) : m_ic(ic) { }
     virtual string toString() const {
         stringstream s;
-        s << "call\t" << m_ic->getLeft()->getSymbol()->rname;
+        if (m_ic->op == PCALL) {
+            Emitter::i = 0;
+            s << "call@\t(";
+            s << m_ic->getLeft();
+            s << ",\t";
+            Emitter::i++;
+            s << m_ic->getLeft();
+            s << ")";
+        }
+        else {
+            s << "call\t" << m_ic->getLeft()->getSymbol()->rname << "\t";
+        }
         // COMMENT
-        s << "\t\t\t; ";
+        s << "\t\t; ";
         if (m_ic->getResult())
             s << m_ic->getResult()->friendlyName() << "=";
         s << m_ic->getLeft()->friendlyName() << "()";
