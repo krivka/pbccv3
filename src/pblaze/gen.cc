@@ -82,6 +82,11 @@ void Call(ICode *ic) {
                 sym->regs[index] = nullptr;
             }
         }
+        for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
+            ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
+            ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i];
+        }
     }
     emit << I::Call(ic);
     if (isMain) {
