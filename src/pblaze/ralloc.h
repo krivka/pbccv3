@@ -117,8 +117,6 @@ struct reg_info : public Byte {
     void purge();
     void occupy(Operand *o, int index) {
         MemoryCell *cell = Memory::get()->contains(o, index);
-        if (cell)
-            cell->clear(this);
         Byte::occupy(o, index);
     }
     bool containsLive(ICode *ic);

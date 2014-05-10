@@ -51,6 +51,13 @@ void Call(ICode *ic) {
         for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
             Bank::current()->regs()[i].clear();
         }
+        if (ic->op == PCALL) {
+            for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
+                emit << I::Star(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
+                ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
+                ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i];
+            }
+        }
         Bank::swap();
     }
     else {
@@ -62,6 +69,9 @@ void Call(ICode *ic) {
             else
                 break;
             args = args->getNext();
+        }
+        if (argcnt >= VAR_REG_CNT - 2) {
+            cerr << "Warning: You're calling a pointer (" << ic->getLeft() << ") to a function that has too many arguments. This will result in an undefined behavior.\n";
         }
         for( ; argcnt < VAR_REG_CNT; argcnt++) {
             Register *reg = &Bank::current()->regs()[argcnt];

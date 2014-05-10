@@ -215,11 +215,11 @@ public:
     virtual string toString() const {
         stringstream s;
         if (m_ic->op == PCALL) {
-            Emitter::i = 0;
+            Emitter::i = 1;
             s << "call@\t(";
             s << m_ic->getLeft();
             s << ",\t";
-            Emitter::i++;
+            Emitter::i = 0;
             s << m_ic->getLeft();
             s << ")";
         }
