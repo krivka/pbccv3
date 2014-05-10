@@ -47,6 +47,10 @@ void Call(ICode *ic) {
         isMain = true;
     Stack::instance()->callFunction();
     if (isMain) {
+        // treat the previous variables as invalid (stored on stack)
+        for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
+            Bank::current()->regs()[i].clear();
+        }
         Bank::swap();
     }
     else {
@@ -147,16 +151,10 @@ void Send(ICode *ic) {
                 break;
             currentFunc = currentFunc->getPrev();
         }
-        if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main")) {
+        if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main"))
             isMain = true;
-            // treat the previous variables as invalid (stored on stack)
-            for (int i = 0; i < callIC->getResult()->getType()->getSize(); i++) {
-                Bank::current()->regs()[i].clear();
-            }
-        }
-        else {
+        else
             isMain = false;
-        }
         lastReg = 0;
     }
     if (!isMain) {
