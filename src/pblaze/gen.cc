@@ -47,10 +47,6 @@ void Call(ICode *ic) {
         isMain = true;
     Stack::instance()->callFunction();
     if (isMain) {
-        // treat the previous variables as invalid (stored on stack)
-        for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
-            Bank::current()->regs()[i].clear();
-        }
         Bank::swap();
     }
     else {
@@ -140,20 +136,27 @@ void Send(ICode *ic) {
         ICode *currentFunc = ic;
         callIC = ic;
         while(callIC) {
-            callIC = callIC->getNext();
-            if (callIC->op == CALL)
+            if (callIC->op == CALL) {
+                emit << "\t; Call " << callIC->getLeft()->friendlyName() << " starting:\n";
                 break;
+            }
+            callIC = callIC->getNext();
         }
-        emit << "\t; Call " << callIC->getLeft()->friendlyName() << " starting:\n";
         while(currentFunc) {
             if (currentFunc->op == FUNCTION)
                 break;
             currentFunc = currentFunc->getPrev();
         }
-        if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main"))
+        if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main")) {
             isMain = true;
-        else
+            // treat the previous variables as invalid (stored on stack)
+            for (int i = 0; i < callIC->getResult()->getType()->getSize(); i++) {
+                Bank::current()->regs()[i].clear();
+            }
+        }
+        else {
             isMain = false;
+        }
         lastReg = 0;
     }
     if (!isMain) {
@@ -340,7 +343,7 @@ std::map<unsigned int, genFunc> map {
     { GOTO, GoTo },
 
     { '=', Assign },
-    { ADDRESS_OF, AddressOf },
+//     { ADDRESS_OF, AddressOf },
     { CAST, Cast },
 
     { '+', Add },
