@@ -199,14 +199,19 @@ private:
 
 class I::Call : public I {
 public:
-    Call(Symbol *func) : m_func(func) { }
+    Call(ICode *ic) : m_ic(ic) { }
     virtual string toString() const {
         stringstream s;
-        s << "call\t" << m_func->rname;
+        s << "call\t" << m_ic->getLeft()->getSymbol()->rname;
+        // COMMENT
+        s << "\t\t\t; ";
+        if (m_ic->getResult())
+            s << m_ic->getResult()->friendlyName() << "=";
+        s << m_ic->getLeft()->friendlyName() << "()";
         return s.str();
     }
 private:
-    Symbol *m_func;
+    ICode *m_ic;
 };
 
 class I::Jump : public I {

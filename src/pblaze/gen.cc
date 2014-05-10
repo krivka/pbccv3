@@ -48,7 +48,7 @@ void Call(ICode *ic) {
     Stack::instance()->callFunction();
     if (isMain)
         Bank::swap();
-    emit << I::Call(ic->getLeft()->getSymbol());
+    emit << I::Call(ic);
     if (isMain)
         Bank::swap();
     // treat the previous variables as invalid (stored on stack)
@@ -145,21 +145,21 @@ void Send(ICode *ic) {
             }
             lastReg++;
         }
+        if (ic->getNext() && ic->getNext()->op != SEND) {
+            // put the rest of the registers on the current stack
+            for( ; lastReg < VAR_REG_CNT; lastReg++) {
+                Register *reg = &Bank::current()->regs()[lastReg];
+                if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
+                    Symbol *sym = reg->m_oper->getSymbol();
+                    int index = reg->m_index;
+                    reg->clear();
+                    sym->regs[index] = nullptr;
+                }
+            }
+        }
     }
     else {
         Bank::star(ic->getLeft(), &lastReg);
-    }
-    if (ic->getNext() && ic->getNext()->op != SEND) {
-        // put the rest of the registers on the current stack
-        for( ; lastReg < VAR_REG_CNT; lastReg++) {
-            Register *reg = &Bank::current()->regs()[lastReg];
-            if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
-                Symbol *sym = reg->m_oper->getSymbol();
-                int index = reg->m_index;
-                reg->clear();
-                sym->regs[index] = nullptr;
-            }
-        }
     }
 }
 
@@ -204,6 +204,7 @@ void Assign(ICode *ic) {
             result->getSymbol()->regs[i]->m_oper = result;
             right->getSymbol()->regs[i] = nullptr;
         }
+        emit << "\t\t\t\t\t; " << result->friendlyName() << "=" << right->friendlyName() << "\n";
     }
     // assignment to a regular local variable
     else {

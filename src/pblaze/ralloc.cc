@@ -135,10 +135,23 @@ reg_info* Bank::contains(Operand* o, int index) {
 }
 
 void Bank::star(Operand* o, unsigned *firstReg) {
+    static Operand *starSym = nullptr;
     Bank *bank = other();
-    for (Emitter::i = 0; Emitter::i < o->getType()->getSize(); Emitter::i++) {
-        emit << I::Star(&bank->m_regs[*firstReg], o);
-        (*firstReg)++;
+    if (!o->isSymOp()) {
+        if (!starSym)
+            starSym = (Operand *) newiTempOperand(o->getType(), 0);
+        for (Emitter::i = 0; Emitter::i < o->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(starSym, o);
+            emit << I::Star(&bank->m_regs[*firstReg], starSym);
+            starSym->getSymbol()->regs[Emitter::i]->purge();
+            (*firstReg)++;
+        }
+    }
+    else {
+        for (Emitter::i = 0; Emitter::i < o->getType()->getSize(); Emitter::i++) {
+            emit << I::Star(&bank->m_regs[*firstReg], o);
+            (*firstReg)++;
+        }
     }
 }
 
