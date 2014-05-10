@@ -273,6 +273,9 @@ public:
     bool isSymOp() {
         return IS_SYMOP(((::operand*)this));
     }
+    bool isITmp() {
+        return IS_ITEMP(((::operand*)this));
+    }
     SymLink *getType() {
         return static_cast<SymLink*>(operandType(((::operand*)this)));
     }

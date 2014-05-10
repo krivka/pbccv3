@@ -13,6 +13,7 @@ typedef void (*genFunc)(ICode *);
 void Function(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
     emit << "\n" << sym << ":\n";
+    Bank::current()->purge();
 }
 
 void Call(ICode *ic) {
@@ -23,15 +24,40 @@ void Call(ICode *ic) {
 
 void Return(ICode *ic) {
     Operand *left = ic->getLeft();
+    
+    emit << ic->getLeft()->getSymbol()->rname << "\n";
 
     if (!left)
         return;
 
-    // and now... what
+    // First store any changes to variables that will live longer than scope of this function
+    for (int i = 0; i < VAR_REG_CNT; i++) {
+        Register *reg = &Bank::current()->regs()[i];
+        if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
+            reg->clear();
+        }
+    }
+
+    // If this function returns anything, put it in the first register(s)
+    if (left) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            // already there
+            if (left->getSymbol()->regs[Emitter::i]->sX == Emitter::i)
+                continue;
+
+            if (Bank::current()->contains(ic->getLeft(), Emitter::i)) {
+                emit << I::Load(&Bank::current()->regs()[Emitter::i], left);
+            }
+            else {
+                emit << I::Fetch(&Bank::current()->regs()[Emitter::i], left);
+            }
+        }
+    }
+
+    emit << I::Ret();
 }
 
 void EndFunction(ICode *ic) {
-    emit << I::Ret();
 }
 
 void Send(ICode *ic) {
@@ -42,12 +68,20 @@ void Send(ICode *ic) {
     for (int i = 0; i < ic->getLeft()->getType()->getSize(); i++) {
         Register *reg = &Bank::current()->regs()[lastReg];
         reg->clear();
-        reg->occupy(ic->getLeft(), i);
-        MemoryCell *m = Memory::get()->contains(ic->getLeft(), i);
-        if (m)
-            emit << I::Fetch(reg, ic->getLeft());
-        else
+        // symbol
+        if (ic->getLeft()->isSymOp()) {
+            reg->occupy(ic->getLeft(), i);
+            ic->getLeft()->getSymbol()->regs[i] = reg;
+            if (Bank::current()->contains(ic->getLeft(), i))
+                emit << I::Load(reg, ic->getLeft());
+            else
+                emit << I::Fetch(reg, ic->getLeft());
+        }
+        // literal
+        else {
+            Emitter::i = i;
             emit << I::Load(reg, ic->getLeft());
+        }
         lastReg++;
     }
     emit << ";;;;; Send argreg" << (unsigned) ic->argreg << " of " << ic->getLeft() << " and the lastReg is: " << lastReg << "\n";
@@ -55,9 +89,6 @@ void Send(ICode *ic) {
         // put the rest of the registers on the current stack
         for( ; lastReg < VAR_REG_CNT; lastReg++) {
             Register *reg = &Bank::current()->regs()[lastReg];
-            if (reg->m_oper) {
-                emit << ";! " << (unsigned) reg->m_oper->liveTo() << " : " << (unsigned) ic->seq << "\n";
-            }
             if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
                 reg->clear();
             }
@@ -99,8 +130,16 @@ void Assign(ICode *ic) {
         // Don't bother, these go on stack
     }
     // assignment to a pointer
-    if (ic->isPointerSet()) {
+    else if (ic->isPointerSet()) {
         emit << "TODO: assignment to a pointer\n";
+    }
+    // assignment to temporary local variable
+    else if (right->isITmp()) {
+        for (int i = 0; i < right->getType()->getSize(); i++) {
+            result->getSymbol()->regs[i] = right->getSymbol()->regs[i];
+            result->getSymbol()->regs[i]->m_oper = result;
+            right->getSymbol()->regs[i] = nullptr;
+        }
     }
     // assignment to a regular local variable
     else {
@@ -128,10 +167,14 @@ void Add(ICode *ic) {
 
     emit << ";;;;; Add " << left << " to " << right << " and store it into " << result << "\n";
 
-    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-        emit << I::Add(left, right);
+    if (*result != *left) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
     }
-    Emitter::i = 0;
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::Add(result, right);
+    }
 }
 
 void Sub(ICode *ic) {
@@ -139,18 +182,15 @@ void Sub(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    emit << ";;;;; Sub " << left << " from " << right << " and store it into " << result << "\n";
+    emit << ";;;;; Add " << left << " to " << right << " and store it into " << result << "\n";
 
-    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-        emit << I::Sub(left, right);
-    }
-
-    // TODO this is definitely wrong
     if (*result != *left) {
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             emit << I::Load(result, left);
         }
-        Emitter::i = 0;
+    }
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::Sub(result, right);
     }
 }
 

@@ -115,6 +115,7 @@ private:
 #define Register reg_info
 struct reg_info : public Byte {
     void clear();
+    void purge();
     void occupy(Operand *o, int index) {
         MemoryCell *cell = Memory::get()->contains(o, index);
         if (cell)
@@ -143,6 +144,8 @@ public:
     Register *regs() {
         return m_regs;
     }
+    Register *contains(Operand *o, int index);
+    void purge();
 private:
     Register m_regs[REG_CNT];
 

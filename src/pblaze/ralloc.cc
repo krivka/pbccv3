@@ -122,6 +122,25 @@ Register* Bank::getFreeRegister(int seq) {
     return toFree;
 }
 
+void Bank::purge() {
+    for (int i = 0; i < VAR_REG_CNT; i++) {
+        m_regs[i].purge();
+    }
+}
+
+reg_info* Bank::contains(Operand* o, int index) {
+    for (int i = 0; i < REG_CNT; i++) {
+        if (*m_regs[i].m_oper == *o && m_regs[i].m_index == index)
+            return &m_regs[i];
+    }
+    return nullptr;
+}
+
+
+void reg_info::purge() {
+    Byte::clear();
+}
+
 void Register::clear() {
     if (!m_oper || !m_oper->isSymOp() || !m_oper->getSymbol()->regs[m_index]) 
         return;
