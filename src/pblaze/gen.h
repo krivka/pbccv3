@@ -98,10 +98,7 @@ public:
         else
             s << m_rightreg;
         // COMMENT
-        if (m_r)
-            s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "=" << m_r->friendlyName();
-        else
-            s << "\t\t; changing banks";
+        s << "\t\t; (" << (m_l ? m_l->friendlyName() : m_reg->getName()) << ")=" << (m_r ? m_r->friendlyName() : m_rightreg->getName());
         return s.str();
     }
 private:

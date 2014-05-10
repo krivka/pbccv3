@@ -46,16 +46,35 @@ void Call(ICode *ic) {
     if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main"))
         isMain = true;
     Stack::instance()->callFunction();
-    if (isMain)
-        Bank::swap();
-    emit << I::Call(ic);
     if (isMain) {
         // treat the previous variables as invalid (stored on stack)
         for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
-            if (Bank::current()->regs()[i].m_oper)
-                Bank::current()->regs()[i].m_oper->getSymbol()->regs[Bank::current()->regs()[i].m_index] = nullptr;
-            Bank::current()->regs()[i].purge();
+            Bank::current()->regs()[i].clear();
         }
+        Bank::swap();
+    }
+    else {
+        unsigned argcnt = 0;
+        Value *args = (Value*) ic->getLeft()->getType()->funcAttrs.args;
+        while (args) {
+            if (argcnt + args->getType()->getSize() < VAR_REG_CNT)
+                argcnt += args->getType()->getSize();
+            else
+                break;
+            args = args->getNext();
+        }
+        for( ; argcnt < VAR_REG_CNT; argcnt++) {
+            Register *reg = &Bank::current()->regs()[argcnt];
+            if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
+                Symbol *sym = reg->m_oper->getSymbol();
+                int index = reg->m_index;
+                reg->clear();
+                sym->regs[index] = nullptr;
+            }
+        }
+    }
+    emit << I::Call(ic);
+    if (isMain) {
         for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
             emit << I::Star(&Bank::current()->regs()[i], &Bank::current()->regs()[i]);
         }
@@ -156,18 +175,6 @@ void Send(ICode *ic) {
                 emit << I::Load(reg, ic->getLeft());
             }
             lastReg++;
-        }
-        if (ic->getNext() && ic->getNext()->op != SEND) {
-            // put the rest of the registers on the current stack
-            for( ; lastReg < VAR_REG_CNT; lastReg++) {
-                Register *reg = &Bank::current()->regs()[lastReg];
-                if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
-                    Symbol *sym = reg->m_oper->getSymbol();
-                    int index = reg->m_index;
-                    reg->clear();
-                    sym->regs[index] = nullptr;
-                }
-            }
         }
     }
     else {
