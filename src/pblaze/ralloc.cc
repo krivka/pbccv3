@@ -85,10 +85,8 @@ Bank Bank::m_banks[2];
 bool Bank::m_first = true;
 
 void Bank::swap() {
-    /* Notes:
-     * Switching occurs in main, only
-     * main has to switch before and after calling any other function
-     */
+    emit << I::RegBank(m_first ? I::RegBank::B : I::RegBank::A);
+    m_first = m_first ? false : true;
 }
 
 Register* Bank::getFreeRegister(int seq) {
@@ -134,6 +132,14 @@ reg_info* Bank::contains(Operand* o, int index) {
             return &m_regs[i];
     }
     return nullptr;
+}
+
+void Bank::star(Operand* o, unsigned *firstReg) {
+    Bank *bank = other();
+    for (Emitter::i = 0; Emitter::i < o->getType()->getSize(); Emitter::i++) {
+        emit << I::Star(&bank->m_regs[*firstReg], o);
+        (*firstReg)++;
+    }
 }
 
 

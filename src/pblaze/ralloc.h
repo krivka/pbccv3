@@ -138,6 +138,12 @@ public:
     static Bank *current() {
         return m_first ? m_banks : m_banks + 1;
     }
+    static Bank *other() {
+        return m_first ? m_banks + 1 : m_banks;
+    }
+    static void choose(bool first) {
+        m_first = first;
+    }
     static void swap();
     Register *getFreeRegister(int seq = -1);
     Register *currentStackPointer();
@@ -146,6 +152,7 @@ public:
     }
     Register *contains(Operand *o, int index);
     void purge();
+    static void star(Operand *o, unsigned *firstReg);
 private:
     Register m_regs[REG_CNT];
 

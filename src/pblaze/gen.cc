@@ -13,6 +13,10 @@ typedef void (*genFunc)(ICode *);
 void Function(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
     int regsUsed = 0;
+    if (0 == strcmp(sym->name, "main"))
+        Bank::choose(true);
+    else
+        Bank::choose(false);
     emit << "\n; Function " << sym->name << ", arguments: [";
     Value *v = (Value*) ic->getLeft()->getSymbol()->getType()->funcAttrs.args;
     while (v) {
@@ -32,8 +36,21 @@ void Function(ICode *ic) {
 }
 
 void Call(ICode *ic) {
+    bool isMain = false;
+    ICode *currentFunc = ic;
+    while(currentFunc) {
+        if (currentFunc->op == FUNCTION)
+            break;
+        currentFunc = currentFunc->getPrev();
+    }
+    if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main"))
+        isMain = true;
     Stack::instance()->callFunction();
+    if (isMain)
+        Bank::swap();
     emit << I::Call(ic->getLeft()->getSymbol());
+    if (isMain)
+        Bank::swap();
     // treat the previous variables as invalid (stored on stack)
     for (int i = 0; i < VAR_REG_CNT; i++) {
         if (Bank::current()->regs()[i].m_oper)
@@ -64,54 +81,73 @@ void Return(ICode *ic) {
         emit << "\t; Return starting:\n";
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             // already there
-            if (left->getSymbol()->regs[Emitter::i]->sX == Emitter::i)
+            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i]->sX == Emitter::i)
                 continue;
 
             if (Bank::current()->contains(ic->getLeft(), Emitter::i)) {
                 emit << I::Load(&Bank::current()->regs()[Emitter::i], left);
             }
             else {
-                emit << I::Fetch(&Bank::current()->regs()[Emitter::i], left);
+                if (left->isSymOp())
+                    emit << I::Fetch(&Bank::current()->regs()[Emitter::i], left);
+                else
+                    emit << I::Load(&Bank::current()->regs()[Emitter::i], left);
             }
         }
     }
-
-    emit << I::Ret();
 }
 
 void EndFunction(ICode *ic) {
+    emit << I::Ret();
 }
 
 void Send(ICode *ic) {
     static unsigned lastReg = 0;
+    static ICode *callIC = nullptr;
+    static bool isMain = false;
     if (!ic->getPrev() || ic->getPrev()->op != SEND) {
-        ICode *nic = ic;
-        while(nic) {
-            nic = nic->getNext();
-            if (nic->op == CALL)
+        ICode *currentFunc = ic;
+        callIC = ic;
+        while(callIC) {
+            callIC = callIC->getNext();
+            if (callIC->op == CALL)
                 break;
         }
-        emit << "\t; Call " << nic->getLeft()->friendlyName() << " starting:\n";
+        emit << "\t; Call " << callIC->getLeft()->friendlyName() << " starting:\n";
+        while(currentFunc) {
+            if (currentFunc->op == FUNCTION)
+                break;
+            currentFunc = currentFunc->getPrev();
+        }
+        if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main"))
+            isMain = true;
+        else
+            isMain = false;
         lastReg = 0;
     }
-    for (int i = 0; i < ic->getLeft()->getType()->getSize(); i++) {
-        Register *reg = &Bank::current()->regs()[lastReg];
-        reg->clear();
-        // symbol
-        if (ic->getLeft()->isSymOp()) {
-            reg->occupy(ic->getLeft(), i);
-            ic->getLeft()->getSymbol()->regs[i] = reg;
-            if (Bank::current()->contains(ic->getLeft(), i))
+    if (!isMain) {
+        for (int i = 0; i < ic->getLeft()->getType()->getSize(); i++) {
+            Register *reg = &Bank::current()->regs()[lastReg];
+            reg->clear();
+            // symbol
+            if (ic->getLeft()->isSymOp()) {
+                reg->occupy(ic->getLeft(), i);
+                ic->getLeft()->getSymbol()->regs[i] = reg;
+                if (Bank::current()->contains(ic->getLeft(), i))
+                    emit << I::Load(reg, ic->getLeft());
+                else
+                    emit << I::Fetch(reg, ic->getLeft());
+            }
+            // literal
+            else {
+                Emitter::i = i;
                 emit << I::Load(reg, ic->getLeft());
-            else
-                emit << I::Fetch(reg, ic->getLeft());
+            }
+            lastReg++;
         }
-        // literal
-        else {
-            Emitter::i = i;
-            emit << I::Load(reg, ic->getLeft());
-        }
-        lastReg++;
+    }
+    else {
+        Bank::star(ic->getLeft(), &lastReg);
     }
     if (ic->getNext() && ic->getNext()->op != SEND) {
         // put the rest of the registers on the current stack

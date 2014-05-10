@@ -42,8 +42,10 @@ public:
     virtual string toString() const = 0;
 
     class Load;
+    class Star;
     class Fetch;
     class Store;
+    class RegBank;
     class Add;
     class Sub;
     class Call;
@@ -77,6 +79,30 @@ private:
     uint8_t m_value;
 };
 
+class I::Star : public I {
+public:
+    Star(Operand *left, Operand *right) : m_l(left), m_r(right) { }
+    Star(Register *reg, Operand *right) : m_reg(reg), m_r(right) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "star\t";
+        if (m_l)
+            s << m_l;
+        else {
+            s << m_reg;
+        }
+        s << ",\t";
+        s << m_r;
+        // COMMENT
+        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "=" << m_r->friendlyName();
+        return s.str();
+    }
+private:
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
+    Register *m_reg;
+};
+
 class I::Fetch : public I {
 public:
     Fetch(Register *reg, Operand *op) : m_reg(reg), m_op(op) { }
@@ -108,6 +134,23 @@ public:
 private:
     reg_info *m_reg;
     uint8_t m_addr;
+};
+
+class I::RegBank : public I {
+public:
+    enum Bank {
+        A,
+        B
+    };
+    RegBank(RegBank::Bank bank) : m_bank(bank) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "regbank\t";
+        s << (m_bank == Bank::A ? "A" : m_bank == Bank::B ? "B" : "");
+        return s.str();
+    }
+private:
+    Bank m_bank;
 };
 
 class I::Add : public I {
@@ -228,3 +271,5 @@ inline Emitter& operator<<(Emitter &e, const I &i) {
 #endif // __cplusplus
 #endif // PBLAZE_GEN_H
 
+
+    struct B;
