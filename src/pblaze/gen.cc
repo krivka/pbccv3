@@ -12,10 +12,19 @@ typedef void (*genFunc)(ICode *);
 
 void Function(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
+    int regsUsed = 0;
     emit << "\n; Function " << sym->name << ", arguments: [";
     Value *v = (Value*) ic->getLeft()->getSymbol()->getType()->funcAttrs.args;
     while (v) {
-        emit << v->name << ", ";
+        emit << v->sym->name;
+        if (regsUsed + v->getType()->getSize() < VAR_ARGS) {
+            emit << ":{";
+            for (int i = regsUsed; i < regsUsed + v->getType()->getSize(); i++)
+                emit << Bank::current()->regs()[i].getName() << ",";
+            emit << "}";
+        }
+        emit << ",";
+        regsUsed += v->getType()->getSize();
         v = v->getNext();
     }
     emit << "]\n" << sym << ":\n";
@@ -26,7 +35,7 @@ void Call(ICode *ic) {
     Stack::instance()->callFunction();
     emit << I::Call(ic->getLeft()->getSymbol());
     // treat the previous variables as invalid (stored on stack)
-    for (int i = ic->getResult()->getType()->getSize(); i < VAR_REG_CNT; i++) {
+    for (int i = 0; i < VAR_REG_CNT; i++) {
         if (Bank::current()->regs()[i].m_oper)
             Bank::current()->regs()[i].m_oper->getSymbol()->regs[Bank::current()->regs()[i].m_index] = nullptr;
         Bank::current()->regs()[i].purge();
