@@ -12,7 +12,13 @@ typedef void (*genFunc)(ICode *);
 
 void Function(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
-    emit << "\n" << sym << ":\n";
+    emit << "\n; Function " << sym->name << ", arguments: [";
+    Value *v = (Value*) ic->getLeft()->getSymbol()->getType()->funcAttrs.args;
+    while (v) {
+        emit << v->name << ", ";
+        v = v->getNext();
+    }
+    emit << "]\n" << sym << ":\n";
     Bank::current()->purge();
 }
 
@@ -35,11 +41,6 @@ void Call(ICode *ic) {
 
 void Return(ICode *ic) {
     Operand *left = ic->getLeft();
-    
-    emit << ic->getLeft()->getSymbol()->rname << "\n";
-
-    if (!left)
-        return;
 
     // First store any changes to variables that will live longer than scope of this function
     for (int i = 0; i < VAR_REG_CNT; i++) {
@@ -51,6 +52,7 @@ void Return(ICode *ic) {
 
     // If this function returns anything, put it in the first register(s)
     if (left) {
+        emit << "\t; Return starting:\n";
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             // already there
             if (left->getSymbol()->regs[Emitter::i]->sX == Emitter::i)
@@ -74,6 +76,13 @@ void EndFunction(ICode *ic) {
 void Send(ICode *ic) {
     static unsigned lastReg = 0;
     if (!ic->getPrev() || ic->getPrev()->op != SEND) {
+        ICode *nic = ic;
+        while(nic) {
+            nic = nic->getNext();
+            if (nic->op == CALL)
+                break;
+        }
+        emit << "\t; Call " << nic->getLeft()->friendlyName() << " starting:\n";
         lastReg = 0;
     }
     for (int i = 0; i < ic->getLeft()->getType()->getSize(); i++) {
@@ -95,7 +104,6 @@ void Send(ICode *ic) {
         }
         lastReg++;
     }
-    emit << ";;;;; Send argreg" << (unsigned) ic->argreg << " of " << ic->getLeft() << " and the lastReg is: " << lastReg << "\n";
     if (ic->getNext() && ic->getNext()->op != SEND) {
         // put the rest of the registers on the current stack
         for( ; lastReg < VAR_REG_CNT; lastReg++) {
@@ -111,7 +119,6 @@ void Send(ICode *ic) {
 }
 
 void Receive(ICode *ic) {
-    emit << ";;;;; Receive " << ic->getResult()->getSymbol() << " that is " << (unsigned) ic->argreg << "\n";
     for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
         Register *reg = &Bank::current()->regs()[ic->argreg - 1 + i];
         reg->occupy(ic->getResult(), i);
@@ -130,8 +137,6 @@ void GoTo(ICode *ic) {
 void Assign(ICode *ic) {
     Operand *result = ic->getResult();
     Operand *right = ic->getRight();
-
-    emit << ";;;;; Assign " << right << " to " << result << "\n";
 
     // for some reason, assignment of a symbolic operand that is neither in memory nor in registers was requested by the frontend
     // HACK: just ignore
@@ -179,8 +184,6 @@ void Add(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    emit << ";;;;; Add " << left << " to " << right << " and store it into " << result << "\n";
-
     if (*result != *left &&
         !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
@@ -200,7 +203,6 @@ void Sub(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    emit << ";;;;; Sub " << right << " from " << left << " and store it into " << result << "\n";
     if (*result != *left &&
         !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
@@ -216,7 +218,6 @@ void Sub(ICode *ic) {
 }
 
 void Ifx(ICode *ic) {
-    emit << ";;;;; Jump if " << ic->getCondition() << "\n";
     // if we depend on the result of the previous operation, we should already
     // have what we need in the zero flag (except LT/GT)
     if (ic->getPrev()->getResult() == ic->getCondition()) {
@@ -246,17 +247,12 @@ void Ifx(ICode *ic) {
 }
 
 void CmpEq(ICode *ic) {
-
-    emit << ";;;;; Compare " << ic->getLeft() << " to " << ic->getRight() << " and store result into " << ic->getResult() << "\n";
-//     emit << "; comparing " << ic->getRight()->getSymbol()->rname << " to " << ic->getResult()->getSymbol()->rname << "\n";
     for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
         emit << I::Compare(ic->getLeft(), ic->getRight());
     }
 }
 
 void CmpLt(ICode *ic) {
-    emit << ";;;;; Compare (lower) " << ic->getLeft() << " to " << ic->getRight() << " and store result into " << ic->getResult() << "\n";
-
     for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
         emit << I::Compare(ic->getLeft(), ic->getRight());
     }

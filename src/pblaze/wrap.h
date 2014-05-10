@@ -2,6 +2,7 @@
 #define PBLAZE_WRAP_H
 #ifdef __cplusplus
 
+struct f;
 extern "C" {
 #include "common.h"
 #include "SDCCsymt.h"
@@ -295,6 +296,14 @@ public:
     }
     Value *getValue() {
         return (Value*) OP_VALUE((::operand*)this);
+    }
+    char *friendlyName() {
+        if (isSymOp())
+            return getSymbol()->name;
+        else if (getValue()->getName() && getValue()->getName()[0])
+            return getValue()->getName();
+        else
+            return "(value)";
     }
 };
 

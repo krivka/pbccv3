@@ -66,6 +66,8 @@ public:
         }
         s << ",\t";
         s << m_r;
+        // COMMENT
+        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "=" << m_r->friendlyName();
         return s.str();
     }
 private:
@@ -122,6 +124,8 @@ public:
         s << m_l;
         s << ",\t";
         s << m_r;
+        // COMMENT
+        s << "\t\t; " << m_l->friendlyName()<< "+=" << m_r->friendlyName();
         return s.str();
     }
 private:
@@ -141,6 +145,8 @@ public:
         s << m_l;
         s << ",\t";
         s << m_r;
+        // COMMENT
+        s << "\t\t; " << m_l->friendlyName()<< "-=" << m_r->friendlyName();
         return s.str();
     }
 private:
