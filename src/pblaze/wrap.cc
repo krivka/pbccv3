@@ -16,7 +16,7 @@ bool ICode::isUsedInCurrentInstruction(Operand* op) {
 bool Operand::isValid() {
     if (isSymOp()) {
         // check just the first byte
-        if (Memory::get()->contains(this, 0) || this->getSymbol()->regs[0])
+        if (Stack::contains(this, 0) || Memory::get()->containsStatic(this, 0) || this->getSymbol()->regs[0])
             return true;
         return false;
     }

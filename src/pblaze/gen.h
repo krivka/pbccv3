@@ -138,14 +138,19 @@ private:
 class I::Store : public I {
 public:
     Store(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
+    Store(Operand *op) : m_op(op) { }
     virtual string toString() const {
         stringstream s;
-        s << "store\t" << m_reg->getName() << ",\t" << std::hex << (int) m_addr;
+        if (m_op)
+            s << "store\t" << m_reg->getName() << ",\t" << Bank::currentStackPointer();
+        else
+            s << "store\t" << m_reg->getName() << ",\t" << std::hex << (int) m_addr;
         return s.str();
     }
 private:
     reg_info *m_reg;
     uint8_t m_addr;
+    Operand *m_op {nullptr};
 };
 
 class I::RegBank : public I {
@@ -168,6 +173,7 @@ private:
 class I::Add : public I {
 public:
     Add(Operand *left, Operand *right) : m_l(left), m_r(right) { }
+    Add(Register *reg, uint8_t val) : m_reg(reg), m_val(val) { }
     virtual string toString() const {
         if (*m_l == *m_r)
             return string({});
@@ -176,37 +182,54 @@ public:
             s << "add\t";
         else
             s << "addcy\t";
-        s << m_l;
+        if (m_l)
+            s << m_l;
+        else
+            s << m_reg;
         s << ",\t";
-        s << m_r;
+        if (m_r)
+            s << m_r;
+        else
+            s << m_val;
         // COMMENT
-        s << "\t\t; " << m_l->friendlyName()<< "+=" << m_r->friendlyName();
+        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "+=" << (m_r ? m_r->friendlyName() : "(value)");
         return s.str();
     }
 private:
     Operand *m_l;
     Operand *m_r;
+    Register *m_reg;
+    uint8_t m_val;
 };
 
 class I::Sub : public I {
 public:
     Sub(Operand *left, Operand *right) : m_l(left), m_r(right) { }
+    Sub(Register *reg, uint8_t val) : m_reg(reg), m_val(val) { }
     virtual string toString() const {
         stringstream s;
         if (Emitter::i == 0)
             s << "sub\t";
         else
             s << "subcy\t";
-        s << m_l;
+        if (m_l)
+            s << m_l;
+        else
+            s << m_reg;
         s << ",\t";
-        s << m_r;
+        if (m_r)
+            s << m_r;
+        else
+            s << m_val;
         // COMMENT
-        s << "\t\t; " << m_l->friendlyName()<< "-=" << m_r->friendlyName();
+        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "-=" << (m_r ? m_r->friendlyName() : "(value)");
         return s.str();
     }
 private:
     Operand *m_l;
     Operand *m_r;
+    Register *m_reg;
+    uint8_t m_val;
 };
 
 class I::Call : public I {

@@ -36,7 +36,7 @@ void MemoryCell::clear(reg_info *reg) {
     Byte::clear();
 }
 
-MemoryCell* Memory::contains(Operand* o, int index) {
+MemoryCell* Memory::containsStatic(Operand* o, int index) {
     for (MemoryCell &c : m_cells) {
         if (*c.m_oper == *o && c.m_index == index) {
             return &c;
@@ -66,16 +66,40 @@ Stack* Stack::instance() {
     return _self;
 }
 
-void Stack::callFunction() {
+void Stack::functionStart() {
+    m_offset = 0;
+    m_lastValue = 0;
+}
+
+void Stack::functionEnd() {
+    if (m_offset)
+        emit << I::Sub(Bank::currentStackPointer(), m_offset);
+}
+
+void Stack::pushVariable(Operand* op, int index) {
+    StackCell *loc = contains(op, index);
+    if (loc) {
+        int diff = loc->m_pos - m_offset;
+        if (diff > 0) {
+            emit << I::Add(Bank::currentStackPointer(), diff);
+        }
+        else if (diff < 0) {
+            emit << I::Sub(Bank::currentStackPointer(), diff);
+        }
+    }
+    else {
+        int diff = m_lastValue - m_offset;
+        if (diff)
+            emit << I::Add(Bank::currentStackPointer(), diff);
+        m_mem[m_lastValue].m_oper = op;
+        m_mem[m_lastValue].m_index = index;
+        m_lastValue++;
+    }
+    emit << I::Store(op);
+}
+
+StackCell* Stack::contains(Operand* o, int index) {
     
-}
-
-void Stack::pushVariable(Operand* op) {
-
-}
-
-void Stack::returnFromFunction() {
-
 }
 
 

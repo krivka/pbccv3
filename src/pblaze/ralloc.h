@@ -24,6 +24,7 @@ void pblaze_genCodeLoop(void);
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include <list>
 
 #define MEMORY_SIZE 256
 
@@ -87,7 +88,7 @@ public:
         }
         throw "Ran out of static memory";
     }
-    MemoryCell *contains(Operand *o, int index);
+    MemoryCell *containsStatic(Operand *o, int index);
     void allocateGlobal(Operand *o);
 
 private:
@@ -101,14 +102,30 @@ private:
     static Memory *_self;
 };
 
+class StackCell : public Byte {
+public:
+    int m_pos;
+};
+
 class Stack {
 public:
     static Stack *instance();
-    void pushVariable(Operand *op);
-    void callFunction();
-    void returnFromFunction();
+    void pushVariable(Operand *op, int index);
+    void functionStart();
+    void functionEnd();
+    static StackCell *contains(Operand *o, int index);
 private:
     static Stack *_self;
+    Stack() {
+        int i = 0;
+        for (StackCell &c: m_mem) {
+            c.m_pos = i;
+            i++;
+        }
+    }
+    int m_offset;
+    int m_lastValue;
+    StackCell m_mem[MEMORY_SIZE];
 };
 
 #define Register reg_info
@@ -116,7 +133,7 @@ struct reg_info : public Byte {
     void clear();
     void purge();
     void occupy(Operand *o, int index) {
-        MemoryCell *cell = Memory::get()->contains(o, index);
+//         MemoryCell *cell = Memory::get()->contains(o, index);
         Byte::occupy(o, index);
     }
     bool containsLive(ICode *ic);
@@ -143,7 +160,9 @@ public:
     }
     static void swap();
     Register *getFreeRegister(int seq = -1);
-    Register *currentStackPointer();
+    static Register *currentStackPointer() {
+        return &current()->m_regs[REG_CNT - 1];
+    }
     Register *regs() {
         return m_regs;
     }

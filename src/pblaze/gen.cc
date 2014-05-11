@@ -33,6 +33,7 @@ void Function(ICode *ic) {
     }
     emit << "]\n" << sym << ":\n";
     Bank::current()->purge();
+    Stack::instance()->functionStart();
 }
 
 void Call(ICode *ic) {
@@ -45,7 +46,6 @@ void Call(ICode *ic) {
     }
     if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main"))
         isMain = true;
-    Stack::instance()->callFunction();
     if (isMain) {
         // treat the previous variables as invalid (stored on stack)
         for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
@@ -54,10 +54,14 @@ void Call(ICode *ic) {
         if (ic->op == PCALL) {
             for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
                 emit << I::Star(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
-                ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
+                if (ic->getLeft()->getSymbol()->regs[Emitter::i]) {
+                    ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
+                }
                 ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i];
             }
         }
+        // propagate the current stack pointer
+        emit << I::Star(&Bank::current()->regs()[REG_CNT-1], &Bank::current()->regs()[REG_CNT-1]);
         Bank::swap();
     }
     else {
@@ -84,7 +88,9 @@ void Call(ICode *ic) {
         }
         for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
             emit << I::Load(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
-            ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
+            if (ic->getLeft()->getSymbol()->regs[Emitter::i]) {
+                ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
+            }
             ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i];
         }
     }
@@ -108,7 +114,6 @@ void Call(ICode *ic) {
         ic->getResult()->getSymbol()->regs[i] = reg;
         reg->occupy(ic->getResult(), i);
     }
-    Stack::instance()->returnFromFunction();
 }
 
 void Return(ICode *ic) {
@@ -144,6 +149,7 @@ void Return(ICode *ic) {
 }
 
 void EndFunction(ICode *ic) {
+    Stack::instance()->functionEnd();
     emit << I::Ret();
 }
 
@@ -221,7 +227,7 @@ void Assign(ICode *ic) {
     // for some reason, assignment of a symbolic operand that is neither in memory nor in registers was requested by the frontend
     // HACK: just ignore
     // seems to actually mean something
-    if (right->isSymOp() && !right->getType()->isFunc() && !Memory::get()->contains(right, 0) && !right->getSymbol()->regs[0]) {
+    if (right->isSymOp() && !right->getType()->isFunc() && !Memory::get()->containsStatic(right, 0) && !right->getSymbol()->regs[0] && !Stack::contains(right, 0)) {
         return;
     }
 
@@ -234,8 +240,12 @@ void Assign(ICode *ic) {
         emit << "TODO: assignment to a pointer\n";
     }
     // assignment from a temporary local variable
-    else if (right->isITmp()) {
+    else if (right->isITmp() && right->isSymOp()) {
         for (int i = 0; i < right->getType()->getSize(); i++) {
+            if (!right->getSymbol()->regs[i]) {
+                cerr << "MESSED UP\n";
+                continue;
+            }
             result->getSymbol()->regs[i] = right->getSymbol()->regs[i];
             result->getSymbol()->regs[i]->m_oper = result;
             right->getSymbol()->regs[i] = nullptr;
