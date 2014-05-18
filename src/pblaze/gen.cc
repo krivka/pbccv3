@@ -3,6 +3,34 @@
 #include "wrap.h"
 #include <map>
 
+stringstream& operator<<(stringstream &ss, Operand *o) {
+    int i = Emitter::i;
+    if (o->getType()->isFunc()) {
+        ss << o->getSymbol()->rname;
+        if (!i)
+            ss << " & 0xFF";
+        else
+            ss << " >> 8";
+    }
+    else if (o->isLiteral) {
+        ss << "0x" << std::hex << std::uppercase << ((o->getValue()->getUnsignedLong() & (0xFF << (i << 3))) >> (i << 3));
+    }
+    else if (o->isSymOp()) {
+        if (!o->getSymbol()->regs[i]) {
+            o->getSymbol()->regs[i] = Bank::current()->getFreeRegister();
+            o->getSymbol()->regs[i]->occupy(o, i);
+            if (Stack::instance()->contains(o, i) || Memory::get()->containsStatic(o, i)) {
+                emit << I::Fetch(o->getSymbol()->regs[i], o);
+            }
+        }
+        ss << o->getSymbol()->regs[i];
+    }
+    else {
+        std::cerr << "Unknown Emitter Operand type!\n";
+    }
+    Emitter::i = i;
+}
+
 ICode *currentIC = nullptr;
 static ICode *stepIC();
 
@@ -17,6 +45,8 @@ void Function(ICode *ic) {
         Bank::choose(true);
     else
         Bank::choose(false);
+    Function::processNew(ic);
+    // print the parameters
     emit << "\n; Function " << sym->name << ", arguments: [";
     Value *v = (Value*) ic->getLeft()->getSymbol()->getType()->funcAttrs.args;
     while (v) {
@@ -32,33 +62,62 @@ void Function(ICode *ic) {
         v = v->getNext();
     }
     emit << "]\n" << sym << ":\n";
+    // purge the bank
     Bank::current()->purge();
+    // initialize the stack
     Stack::instance()->functionStart();
 }
 
+/* Calling conventions:
+ *
+ * Current registers are stored on stack
+ *  - If current function is main, we need to store only enough space for the result
+ *  - else, store everything
+ * Registers are filled with arguments
+ * Stack pointer is propagated
+ *  * Banks are switched
+ * Function is called
+ *  * Return value is pulled from the other bank
+ *  * Banks are switched
+ *
+ */
 void Call(ICode *ic) {
-    bool isMain = false;
-    ICode *currentFunc = ic;
-    while(currentFunc) {
-        if (currentFunc->op == FUNCTION)
-            break;
-        currentFunc = currentFunc->getPrev();
-    }
-    if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main"))
-        isMain = true;
-    if (isMain) {
-        // treat the previous variables as invalid (stored on stack)
-        for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
-            Bank::current()->regs()[i].clear();
+    if (0 == strcmp(ic->getLeft()->friendlyName(), "port_out")) {
+        Operand *value = ic->getPrev()->getPrev()->getLeft();
+        Operand *port = ic->getPrev()->getLeft();
+        Emitter::i = 0;
+        if (!value->isSymOp() && !port->isSymOp() && port->getValue()->getUnsignedLong() < 0xF) {
+            emit << I::OutputK(value, port);
         }
+        else {
+            if (port->isSymOp()) {
+                cerr << "Only constant port number is supported now, sorry";
+                return;
+            }
+            emit << I::Output(value, port);
+        }
+        return;
+    }
+    if (0 == strcmp(ic->getLeft()->friendlyName(), "port_in")) {
+        Operand *value = ic->getPrev()->getPrev()->getLeft();
+        Operand *port = ic->getPrev()->getLeft();
+        Emitter::i = 0;
+        if (port->isSymOp()) {
+            cerr << "Only constant port number is supported now, sorry";
+            return;
+        }
+        emit << I::Input(value, port);
+        return;
+    }
+    if (Function::isMain) {
         if (ic->op == PCALL) {
             for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
                 emit << I::Star(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
-                if (ic->getLeft()->getSymbol()->regs[Emitter::i]) {
-                    ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
-                }
-                ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i];
             }
+        }
+        // treat the previous variables as invalid (stored on stack)
+        for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
+            Bank::current()->regs()[i].clear();
         }
         // propagate the current stack pointer
         emit << I::Star(&Bank::current()->regs()[REG_CNT-1], &Bank::current()->regs()[REG_CNT-1]);
@@ -74,9 +133,6 @@ void Call(ICode *ic) {
                 break;
             args = args->getNext();
         }
-        if (argcnt >= VAR_REG_CNT - 2) {
-            cerr << "Warning: You're calling a pointer (" << ic->getLeft() << ") to a function that has too many arguments. This will result in an undefined behavior.\n";
-        }
         for( ; argcnt < VAR_REG_CNT; argcnt++) {
             Register *reg = &Bank::current()->regs()[argcnt];
             if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
@@ -86,16 +142,21 @@ void Call(ICode *ic) {
                 sym->regs[index] = nullptr;
             }
         }
-        for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
-            emit << I::Load(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
-            if (ic->getLeft()->getSymbol()->regs[Emitter::i]) {
-                ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
+        if (ic->op == PCALL) {
+            if (argcnt >= VAR_REG_CNT - 2) {
+                cerr << "Warning: You're calling a pointer (" << ic->getLeft() << ") to a function that has too many arguments. This will result in undefined behavior.\n";
             }
-            ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i];
+            for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
+                emit << I::Load(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
+                if (ic->getLeft()->getSymbol()->regs[Emitter::i]) {
+                    ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
+                }
+                ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i];
+            }
         }
     }
     emit << I::Call(ic);
-    if (isMain) {
+    if (Function::isMain) {
         for (int i = 0; i < ic->getResult()->getType()->getSize(); i++) {
             emit << I::Star(&Bank::current()->regs()[i], &Bank::current()->regs()[i]);
         }
@@ -132,7 +193,7 @@ void Return(ICode *ic) {
         emit << "\t; Return starting:\n";
         for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
             // already there
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i]->sX == Emitter::i)
+            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->getSymbol()->regs[Emitter::i]->sX == Emitter::i)
                 continue;
 
             if (Bank::current()->contains(ic->getLeft(), Emitter::i)) {
@@ -146,48 +207,43 @@ void Return(ICode *ic) {
             }
         }
     }
+    Stack::instance()->functionEnd();
+    emit << I::Ret();
 }
 
 void EndFunction(ICode *ic) {
-    Stack::instance()->functionEnd();
-    emit << I::Ret();
 }
 
 void Send(ICode *ic) {
     static unsigned lastReg = 0;
     static ICode *callIC = nullptr;
-    static bool isMain = false;
     if (!ic->getPrev() || ic->getPrev()->op != SEND) {
-        ICode *currentFunc = ic;
         callIC = ic;
         while(callIC) {
             if (callIC->op == CALL || callIC->op == PCALL) {
+                // skip builtins
+                if (0 == strcmp(callIC->getLeft()->friendlyName(), "port_out") ||
+                    0 == strcmp(callIC->getLeft()->friendlyName(), "port_in")) {
+                    return;
+                }
                 emit << "\t; Call " << callIC->getLeft()->friendlyName() << " starting:\n";
                 break;
             }
             callIC = callIC->getNext();
         }
-        while(currentFunc) {
-            if (currentFunc->op == FUNCTION)
-                break;
-            currentFunc = currentFunc->getPrev();
-        }
-        if (currentFunc && 0 == strcmp(currentFunc->getLeft()->getSymbol()->name, "main"))
-            isMain = true;
-        else
-            isMain = false;
         lastReg = 0;
     }
-    if (!isMain) {
+    if (!Function::isMain) {
         for (int i = 0; i < ic->getLeft()->getType()->getSize(); i++) {
             Register *reg = &Bank::current()->regs()[lastReg];
             reg->clear();
             // symbol
             if (ic->getLeft()->isSymOp()) {
                 reg->occupy(ic->getLeft(), i);
-                ic->getLeft()->getSymbol()->regs[i] = reg;
-                if (Bank::current()->contains(ic->getLeft(), i))
+                Emitter::i = i;
+                if (Bank::current()->contains(ic->getLeft(), i)) {
                     emit << I::Load(reg, ic->getLeft());
+                }
                 else
                     emit << I::Fetch(reg, ic->getLeft());
             }
@@ -225,9 +281,7 @@ void Assign(ICode *ic) {
     Operand *right = ic->getRight();
 
     // for some reason, assignment of a symbolic operand that is neither in memory nor in registers was requested by the frontend
-    // HACK: just ignore
-    // seems to actually mean something
-    if (right->isSymOp() && !right->getType()->isFunc() && !Memory::get()->containsStatic(right, 0) && !right->getSymbol()->regs[0] && !Stack::contains(right, 0)) {
+    if (right->isSymOp() && !right->getType()->isFunc() && !Memory::get()->containsStatic(right, 0) && !right->getSymbol()->regs[0] && !Stack::instance()->contains(right, 0)) {
         return;
     }
 
@@ -237,20 +291,30 @@ void Assign(ICode *ic) {
     }
     // assignment to a pointer
     else if (ic->isPointerSet()) {
-        emit << "TODO: assignment to a pointer\n";
+        Operand *tmpOp = nullptr;
+        if (right->isLiteral) 
+            tmpOp = (Operand *) newiTempOperand(right->getType(), 0);
+        for (Emitter::i = 0; Emitter::i < result->getType()->getSize(); Emitter::i++) {
+            if (tmpOp) {
+                emit << I::Load(tmpOp, right);
+                emit << I::Store(result, tmpOp);
+            }
+            else {
+                emit << I::Store(result, right);
+            }
+        }
     }
     // assignment from a temporary local variable
     else if (right->isITmp() && right->isSymOp()) {
         for (int i = 0; i < right->getType()->getSize(); i++) {
             if (!right->getSymbol()->regs[i]) {
-                cerr << "MESSED UP\n";
                 continue;
             }
             result->getSymbol()->regs[i] = right->getSymbol()->regs[i];
             result->getSymbol()->regs[i]->m_oper = result;
             right->getSymbol()->regs[i] = nullptr;
         }
-        emit << "\t\t\t\t\t; " << result->friendlyName() << "=" << right->friendlyName() << "\n";
+        emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << right->friendlyName() << "\n";
     }
     // assignment to a regular local variable
     else {
@@ -261,14 +325,49 @@ void Assign(ICode *ic) {
 }
 
 void AddressOf(ICode *ic) {
+    MemoryCell *memoryCell = Memory::get()->containsStatic(ic->getLeft(), 0);
+    StackCell *stackCell = Stack::instance()->contains(ic->getLeft(), 0);
+    if (memoryCell) {
+        Emitter::i = 0;
+        emit << I::Load(ic->getResult(), memoryCell->m_pos);
+    }
+    else {
+        Stack::instance()->loadAddress(ic->getResult(), ic->getLeft());
+    }
+}
 
+void AtAddress(ICode *ic) {
+    for (Emitter::i = 0; Emitter::i < ic->getResult()->getType()->getSize(); Emitter::i++)
+        emit << I::Fetch(ic->getResult(), ic->getLeft());
 }
 
 void Cast(ICode *ic) {
-    // Don't forget about bool -> byte casting
-    emit << "; casting " << ic->getRight()->getSymbol()->rname << " to " << ic->getResult()->getSymbol()->rname << "\n";
-    emit << "; right: size: " << ic->getRight()->getType()->getSize() << "\n";
-    emit << "; result: size: " << ic->getResult()->getType()->getSize() << "\n";
+    if (!ic->getRight()->isITmp()) {
+        for (Emitter::i = 0; Emitter::i < ic->getRight()->getType()->getSize(); Emitter::i++) {
+            Register *reg = ic->getRight()->getSymbol()->regs[Emitter::i];
+            reg->clear();
+            reg->occupy(ic->getResult(), Emitter::i);
+            ic->getResult()->getSymbol()->regs[Emitter::i] = reg;
+        }
+    }
+    else {
+        for (Emitter::i = 0; Emitter::i < ic->getRight()->getType()->getSize(); Emitter::i++) {
+            if (ic->getRight()->getSymbol()->regs[Emitter::i]) {
+                ic->getRight()->getSymbol()->regs[Emitter::i]->occupy(ic->getResult(), Emitter::i);
+                ic->getResult()->getSymbol()->regs[Emitter::i] = ic->getRight()->getSymbol()->regs[Emitter::i];
+                ic->getRight()->getSymbol()->regs[Emitter::i] = nullptr;
+            }
+            else {
+                emit << I::Fetch(ic->getResult(), ic->getRight());
+            }
+        }
+    }
+    emit << "\t\t\t\t\t\t; Casting " << ic->getRight()->friendlyName() << " (" << ic->getRight()->getType()->getSize() << ") to " << ic->getResult()->friendlyName() << " (" << ic->getResult()->getType()->getSize() << ")\n";
+
+    // fill the rest with zeroes
+    for (Emitter::i = ic->getRight()->getType()->getSize(); Emitter::i < ic->getResult()->getType()->getSize(); Emitter::i++) {
+        emit << I::Load(ic->getResult(), (uint8_t) 0);
+    }
 }
 
 void Add(ICode *ic) {
@@ -312,29 +411,30 @@ void Sub(ICode *ic) {
 void Ifx(ICode *ic) {
     // if we depend on the result of the previous operation, we should already
     // have what we need in the zero flag (except LT/GT)
-    if (ic->getPrev()->getResult() == ic->getCondition()) {
-        if (ic->getPrev()->op == '<') {
-            if (ic->icTrue())
-                emit << I::Jump(ic->icTrue(), I::Jump::C);
-            else
-                emit << I::Jump(ic->icFalse(), I::Jump::NC);
+    if (ic->getPrev()->getResult() != ic->getCondition()) {
+        for (Emitter::i = 0; Emitter::i < ic->getCondition()->getType()->getSize(); Emitter::i++) {
+            emit << I::Test(ic->getCondition(), ic->getCondition());
         }
-        else if (ic->getPrev()->op == '>') {
-            if (ic->icTrue())
-                emit << I::Jump(ic->icTrue(), I::Jump::NC);
-            else
-                emit << I::Jump(ic->icFalse(), I::Jump::C);
-        }
-        else {
-            if (ic->icTrue())
-                emit << I::Jump(ic->icTrue(), I::Jump::Z);
-            else
-                emit << I::Jump(ic->icFalse(), I::Jump::NZ);
-        }
+    }
+    if (ic->getPrev()->op == '<') {
+        if (ic->icTrue())
+            emit << I::Jump(ic->icTrue(), I::Jump::C);
+        else
+            emit << I::Jump(ic->icFalse(), I::Jump::NC);
+    }
+    else if (ic->getPrev()->op == '>') {
+        if (ic->icTrue())
+            emit << I::Jump(ic->icTrue(), I::Jump::NC);
+        else
+            emit << I::Jump(ic->icFalse(), I::Jump::C);
     }
     else {
-        std::cerr << "; Condition too complex\n";
+        if (ic->icTrue())
+            emit << I::Jump(ic->icTrue(), I::Jump::NZ);
+        else
+            emit << I::Jump(ic->icFalse(), I::Jump::Z);
     }
+    Emitter::i = 0;
     emit << I::Load(ic->getCondition(), ic->getCondition());
 }
 
@@ -368,7 +468,8 @@ std::map<unsigned int, genFunc> map {
     { GOTO, GoTo },
 
     { '=', Assign },
-//     { ADDRESS_OF, AddressOf },
+    { ADDRESS_OF, AddressOf },
+    { GET_VALUE_AT_ADDRESS, AtAddress },
     { CAST, Cast },
 
     { '+', Add },
@@ -384,6 +485,7 @@ std::map<unsigned int, genFunc> map {
 };
 
 ICode *stepIC() {
+    Allocator::seq = currentIC->seq;
     if (!currentIC->generated) {
         Gen::genFunc gen = Gen::map[currentIC->op];
         if (gen)
@@ -396,8 +498,10 @@ ICode *stepIC() {
     return previous;
 }
 
-void genPBlazeCode(ICode *lic) {
-    currentIC = lic;
+void genPBlazeCode(EbbIndex *ebbi) {
+    EbBlock **ebbs = (EbBlock**) ebbi->dfOrder;
+    int count = ebbi->getCount();
+    currentIC = ICode::fromEbBlock(ebbs, count);
 
     while (currentIC) {
         stepIC();

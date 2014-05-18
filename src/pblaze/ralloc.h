@@ -43,6 +43,7 @@ struct reg_info;
 class Allocator {
 public:
     static void assignRegisters(EbbIndex *ebbi);
+    static int seq;
 private:
     Allocator();
     static Allocator *_self;
@@ -70,7 +71,6 @@ struct Byte {
 };
 
 struct MemoryCell : public Byte {
-    void clear(reg_info *reg);
     uint8_t m_pos { 0 };
 };
 
@@ -111,9 +111,11 @@ class Stack {
 public:
     static Stack *instance();
     void pushVariable(Operand *op, int index);
+    void fetchVariable(Operand *op, int index);
     void functionStart();
     void functionEnd();
-    static StackCell *contains(Operand *o, int index);
+    void loadAddress(Operand *res, Operand *obj);
+    StackCell *contains(Operand *o, int index);
 private:
     static Stack *_self;
     Stack() {
@@ -141,7 +143,7 @@ struct reg_info : public Byte {
 
     string getName() {
         stringstream ss;
-        ss << "s" << std::hex << (int) sX;
+        ss << "s" << std::hex << std::uppercase << (int) sX;
         return ss.str();
     }
     uint8_t sX { 0 };
@@ -161,7 +163,7 @@ public:
     static void swap();
     Register *getFreeRegister(int seq = -1);
     static Register *currentStackPointer() {
-        return &current()->m_regs[REG_CNT - 1];
+        return &(current()->m_regs[REG_CNT - 1]);
     }
     Register *regs() {
         return m_regs;

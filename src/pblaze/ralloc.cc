@@ -3,6 +3,7 @@
 #include <iostream>
 
 Allocator *Allocator::_self = nullptr;
+int Allocator::seq = 0;
 
 Allocator::Allocator() {
 }
@@ -10,11 +11,7 @@ Allocator::Allocator() {
 void Allocator::assignRegisters(EbbIndex* ebbi) {
     if (!_self)
         _self = new Allocator();
-
-    EbBlock **ebbs = ebbi->getBbOrder();
-    int count = ebbi->getCount();
-    ICode *ic = ICode::fromEbBlock(ebbs, count);
-    genPBlazeCode(ic);
+    genPBlazeCode(ebbi);
 }
 
 void pblaze_assignRegisters(ebbIndex * ebbi) {
@@ -27,14 +24,6 @@ void pblaze_genCodeLoop(void) {
 
 
 
-
-void MemoryCell::clear(reg_info *reg) {
-    int tempI = Emitter::i;
-    Emitter::i = reg->m_index;
-    emit << I::Fetch(reg->m_oper, m_pos);
-    Emitter::i = tempI;
-    Byte::clear();
-}
 
 MemoryCell* Memory::containsStatic(Operand* o, int index) {
     for (MemoryCell &c : m_cells) {
@@ -77,6 +66,8 @@ void Stack::functionEnd() {
 }
 
 void Stack::pushVariable(Operand* op, int index) {
+    int iStorage = Emitter::i;
+    Emitter::i = index;
     StackCell *loc = contains(op, index);
     if (loc) {
         int diff = loc->m_pos - m_offset;
@@ -84,22 +75,65 @@ void Stack::pushVariable(Operand* op, int index) {
             emit << I::Add(Bank::currentStackPointer(), diff);
         }
         else if (diff < 0) {
-            emit << I::Sub(Bank::currentStackPointer(), diff);
+            emit << I::Sub(Bank::currentStackPointer(), -diff);
         }
+        m_offset += diff + 1;
     }
     else {
-        int diff = m_lastValue - m_offset;
+        int diff = m_lastValue - m_offset + index;
         if (diff)
             emit << I::Add(Bank::currentStackPointer(), diff);
-        m_mem[m_lastValue].m_oper = op;
-        m_mem[m_lastValue].m_index = index;
-        m_lastValue++;
+        m_offset += diff;
+        // to reserve the whole space
+        for (int i = 0; i < op->getType()->getSize(); i++) {
+            m_mem[m_lastValue+i].m_oper = op;
+            m_mem[m_lastValue+i].m_index = i;
+        }
+        m_lastValue += op->getType()->getSize();
     }
     emit << I::Store(op);
+    emit << I::Add(Bank::currentStackPointer(), 1);
+    Emitter::i = iStorage;
+}
+
+void Stack::fetchVariable(Operand* op, int index) {
+    int emitterStorage = Emitter::i;
+    StackCell *cell = contains(op, index);
+    if (!cell) {
+        cerr << "Warning: Can't find variable" << op->getSymbol()->rname << "on stack!\n";
+        return;
+    }
+    int diff = cell->m_pos - m_offset;
+    m_offset += diff;
+    if (diff > 0)
+        emit << I::Add(Bank::currentStackPointer(), diff);
+    else
+        emit << I::Sub(Bank::currentStackPointer(), -diff);
+    Emitter::i = emitterStorage;
+}
+
+void Stack::loadAddress(Operand* res, Operand* obj) {
+    if (!contains(obj, 0)) {
+        // reserve
+        for (int i = 0; i < obj->getType()->getSize(); i++) {
+            m_mem[m_lastValue+i].m_oper = obj;
+            m_mem[m_lastValue+i].m_index = i;
+        }
+        m_lastValue += obj->getType()->getSize();
+    }
+    int emitterStorage = Emitter::i;
+    Emitter::i = 0;
+    emit << I::Load(res, Bank::currentStackPointer());
+    emit << I::Add(res->getSymbol()->regs[0], (uint8_t) m_lastValue - obj->getType()->getSize());
+    Emitter::i = emitterStorage;
 }
 
 StackCell* Stack::contains(Operand* o, int index) {
-    
+    for (int i = 0; i < m_lastValue; i++) {
+        if(*m_mem[i].m_oper == *o)
+            return &m_mem[i];
+    }
+    return nullptr;
 }
 
 
@@ -139,7 +173,6 @@ Register* Bank::getFreeRegister(int seq) {
             latest = m_regs[i].m_oper->getSymbol()->liveTo;
         }
     }
-    cerr << "WILL FREE " << toFree->getName() << "\n";
     toFree->clear();
     return toFree;
 }
@@ -185,17 +218,10 @@ void reg_info::purge() {
 }
 
 void Register::clear() {
-    if (!m_oper || !m_oper->isSymOp() || !m_oper->getSymbol()->regs[m_index]) 
+    if (!m_oper || !m_oper->isSymOp() || m_oper->getSymbol()->regs[m_index] != this) 
         return;
 
-    MemoryCell *cell = Memory::get()->occupy(m_oper, m_index);
-
-    int tempI = Emitter::i;
-    Emitter::i = m_index;
-    emit << I::Store(m_oper->getSymbol()->regs[m_index], cell->m_pos);
-    Emitter::i = tempI;
-    m_oper->getSymbol()->regs[m_index] = nullptr;
-
+    moveToMemory();
     Byte::clear();
 }
 
@@ -206,6 +232,16 @@ bool reg_info::containsLive(ICode *ic) {
 }
 
 void reg_info::moveToMemory() {
-
+    if (m_oper->liveTo() >= Allocator::seq) {
+        if (Memory::get()->containsStatic(m_oper, m_index)) {
+            Operand *staticSym = (Operand *) newiTempOperand(newCharLink(), 0);
+            emit << I::Load(staticSym, Memory::get()->containsStatic(m_oper, m_index)->m_pos);
+        }
+        else {
+            Stack *stack = Stack::instance();
+            stack->pushVariable(m_oper, m_index);
+        }
+    }
+    m_oper->getSymbol()->regs[m_index] = nullptr;
 }
 

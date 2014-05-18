@@ -12,37 +12,14 @@
 using std::string;
 using std::stringstream;
 
-void genPBlazeCode(ICode *lic);
+void genPBlazeCode(EbbIndex *eb);
 
 
 inline stringstream& operator<<(stringstream &ss, Register *r) {
     ss << r->getName();
 }
 
-inline stringstream& operator<<(stringstream &ss, Operand *o) {
-    int i = Emitter::i;
-    if (o->getType()->isFunc()) {
-        ss << o->getSymbol()->rname;
-        if (!i)
-            ss << "'lower";
-        else
-            ss << "'upper";
-    }
-    else if (o->isLiteral) {
-        ss << "0x" << std::hex << ((o->getValue()->getUnsignedLong() & (0xFF << (i << 3))) >> (i << 3));
-    }
-    else if (o->isSymOp()) {
-        if (!o->getSymbol()->regs[i]) {
-            o->getSymbol()->regs[i] = Bank::current()->getFreeRegister();
-            o->getSymbol()->regs[i]->occupy(o, i);
-        }
-        ss << o->getSymbol()->regs[i];
-    }
-    else {
-        std::cerr << "Unknown Emitter Operand type!\n";
-    }
-    Emitter::i = i;
-}
+stringstream& operator<<(stringstream &ss, Operand *o);
 
 class I {
 public:
@@ -59,30 +36,42 @@ public:
     class Jump;
     class Ret;
     class Compare;
+    class Test;
+    class Output;
+    class OutputK;
+    class Input;
 };
 
 class I::Load : public I {
 public:
     Load(Operand *left, Operand *right) : m_l(left), m_r(right) { }
+    Load(Operand *left, Register *rreg) : m_l(left), m_rreg(rreg) { }
     Load(Register *reg, Operand *right) : m_reg(reg), m_r(right) { }
+    Load(Operand *left, uint8_t value) : m_l(left), m_value(value) { }
     virtual string toString() const {
         stringstream s;
-        s << "load\t";
+        s << "load\t\t";
         if (m_l)
             s << m_l;
         else {
             s << m_reg;
         }
         s << ",\t";
-        s << m_r;
+        if (m_r)
+            s << m_r;
+        else if (m_rreg)
+            s << m_rreg;
+        else
+            s << "0x" << std::hex << std::uppercase << (unsigned) m_value;
         // COMMENT
-        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "=" << m_r->friendlyName();
+        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]=" << (m_r ? m_r->friendlyName() : m_rreg ? m_rreg->getName() : "(value)") << "[" << Emitter::i << "]";
         return s.str();
     }
 private:
     Operand *m_l { nullptr };
     Operand *m_r { nullptr };
-    Register *m_reg;
+    Register *m_reg { nullptr };
+    Register *m_rreg { nullptr };
     uint8_t m_value;
 };
 
@@ -93,7 +82,7 @@ public:
     Star(Register *reg, Register *right) : m_reg(reg), m_rightreg(right) { }
     virtual string toString() const {
         stringstream s;
-        s << "star\t";
+        s << "star\t\t";
         if (m_l)
             s << m_l;
         else {
@@ -106,51 +95,72 @@ public:
             s << m_rightreg;
         // COMMENT
         s << "\t\t; (" << (m_l ? m_l->friendlyName() : m_reg->getName()) << ")=" << (m_r ? m_r->friendlyName() : m_rightreg->getName());
+        if (m_r)
+            s << "[" << Emitter::i << "]";
         return s.str();
     }
 private:
     Operand *m_l { nullptr };
     Operand *m_r { nullptr };
-    Register *m_reg;
-    Register *m_rightreg;
+    Register *m_reg { nullptr };
+    Register *m_rightreg { nullptr };
 };
 
 class I::Fetch : public I {
 public:
+    Fetch(Operand *res, Operand *op) : m_res(res), m_op(op) { }
     Fetch(Register *reg, Operand *op) : m_reg(reg), m_op(op) { }
-    Fetch(Operand *left, uint8_t addr) : m_op(left), m_addr(addr) { }
     virtual string toString() const {
         stringstream s;
-        s << "fetch\t";
-        if (m_op)
-            s << m_op;
-        else
+        s << "fetch\t\t";
+        if (m_res) {
+            s << m_res;
+            s << ",\t(";
+        }
+        else {
             s << m_reg;
-        s << ",\t" << std::hex << (int) m_addr;
+            s << ",\t(";
+        }
+        s << m_op;
+        s << ")";
         return s.str();
     }
 private:
-    Register *m_reg;
-    Operand *m_op;
-    uint8_t m_addr;
+    Register *m_reg { nullptr };
+    Operand *m_op { nullptr };
+    Operand *m_res { nullptr };
 };
 
 class I::Store : public I {
 public:
-    Store(reg_info *reg, uint8_t addr) : m_reg(reg), m_addr(addr) { }
+    Store(Operand *result, Operand *right) : m_op(result), m_r(right) { }
     Store(Operand *op) : m_op(op) { }
     virtual string toString() const {
         stringstream s;
-        if (m_op)
-            s << "store\t" << m_reg->getName() << ",\t" << Bank::currentStackPointer();
-        else
-            s << "store\t" << m_reg->getName() << ",\t" << std::hex << (int) m_addr;
+        s << "store\t\t";
+        if (m_r) {
+            s << m_r;
+            s << ",\t(";
+            s << m_op;
+            s << ")";
+        }
+        else {
+            s << m_op;
+            s << ",\t(";
+            s << Bank::currentStackPointer();
+            s << ")";
+        }
+        // COMMENT
+        if (m_op) {
+            s << "\t\t; {stack} < ";
+            s << m_op->friendlyName() << "[" << Emitter::i << "]";
+        }
         return s.str();
     }
 private:
-    reg_info *m_reg;
     uint8_t m_addr;
-    Operand *m_op {nullptr};
+    Operand *m_op { nullptr };
+    Operand *m_r { nullptr };
 };
 
 class I::RegBank : public I {
@@ -162,7 +172,7 @@ public:
     RegBank(RegBank::Bank bank) : m_bank(bank) { }
     virtual string toString() const {
         stringstream s;
-        s << "regbank\t";
+        s << "regbank\t\t";
         s << (m_bank == Bank::A ? "A" : m_bank == Bank::B ? "B" : "");
         return s.str();
     }
@@ -175,13 +185,15 @@ public:
     Add(Operand *left, Operand *right) : m_l(left), m_r(right) { }
     Add(Register *reg, uint8_t val) : m_reg(reg), m_val(val) { }
     virtual string toString() const {
+        stringstream s;
         if (*m_l == *m_r)
             return string({});
-        stringstream s;
-        if (Emitter::i == 0)
-            s << "add\t";
+        if ((!m_val && !m_r)|| (m_r && !m_r->isSymOp() && !((m_r->getValue()->getUnsignedLong() & (0xFF << (Emitter::i << 3))) >> (Emitter::i << 3))))
+            return s.str();
+        if (Emitter::i == 0 || !m_r)
+            s << "add\t\t";
         else
-            s << "addcy\t";
+            s << "addcy\t\t";
         if (m_l)
             s << m_l;
         else
@@ -190,15 +202,15 @@ public:
         if (m_r)
             s << m_r;
         else
-            s << m_val;
+            s << "0x" << std::hex << std::uppercase << (unsigned) m_val;
         // COMMENT
-        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "+=" << (m_r ? m_r->friendlyName() : "(value)");
+        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "]";
         return s.str();
     }
 private:
-    Operand *m_l;
-    Operand *m_r;
-    Register *m_reg;
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
+    Register *m_reg { nullptr };
     uint8_t m_val;
 };
 
@@ -208,10 +220,14 @@ public:
     Sub(Register *reg, uint8_t val) : m_reg(reg), m_val(val) { }
     virtual string toString() const {
         stringstream s;
-        if (Emitter::i == 0)
-            s << "sub\t";
+        if (*m_l == *m_r)
+            return string({});
+        if ((!m_val && !m_r)|| (m_r && !m_r->isSymOp() && !((m_r->getValue()->getUnsignedLong() & (0xFF << (Emitter::i << 3))) >> (Emitter::i << 3))))
+            return s.str();
+        if (Emitter::i == 0 || !m_r)
+            s << "sub\t\t";
         else
-            s << "subcy\t";
+            s << "subcy\t\t";
         if (m_l)
             s << m_l;
         else
@@ -220,15 +236,15 @@ public:
         if (m_r)
             s << m_r;
         else
-            s << m_val;
+            s << "0x" << std::hex << std::uppercase << (unsigned) m_val;
         // COMMENT
-        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "-=" << (m_r ? m_r->friendlyName() : "(value)");
+        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "]";
         return s.str();
     }
 private:
-    Operand *m_l;
-    Operand *m_r;
-    Register *m_reg;
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
+    Register *m_reg { nullptr };
     uint8_t m_val;
 };
 
@@ -239,15 +255,10 @@ public:
         stringstream s;
         if (m_ic->op == PCALL) {
             Emitter::i = 1;
-            s << "call@\t(";
-            s << m_ic->getLeft();
-            s << ",\t";
-            Emitter::i = 0;
-            s << m_ic->getLeft();
-            s << ")";
+            s << "call\t\tsD,\tsE";
         }
         else {
-            s << "call\t" << m_ic->getLeft()->getSymbol()->rname << "\t";
+            s << "call\t\t" << m_ic->getLeft()->getSymbol()->rname << "\t";
         }
         // COMMENT
         s << "\t\t; ";
@@ -257,7 +268,7 @@ public:
         return s.str();
     }
 private:
-    ICode *m_ic;
+    ICode *m_ic { nullptr };
 };
 
 class I::Jump : public I {
@@ -268,7 +279,7 @@ public:
     Jump(Symbol *label, Type t = NONE) : m_label(label), m_type(t) { }
     virtual string toString() const {
         stringstream s;
-        s << "jump\t";
+        s << "jump\t\t";
         switch (m_type) {
             case C: s << "C,\t"; break;
             case Z: s << "Z,\t"; break;
@@ -279,7 +290,7 @@ public:
         return s.str();
     }
 private:
-    Symbol *m_label;
+    Symbol *m_label { nullptr };
     Type m_type;
 };
 
@@ -297,7 +308,7 @@ public:
     virtual string toString() const {
         stringstream s;
         if (Emitter::i == 0)
-            s << "compare\t";
+            s << "compare\t\t";
         else
             s << "comparecy\t";
         s << m_l;
@@ -306,8 +317,75 @@ public:
         return s.str();
     }
 private:
-    Operand *m_l;
-    Operand *m_r;
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
+};
+
+class I::Test : public I {
+public:
+    Test(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    virtual string toString() const {
+        stringstream s;
+        if (Emitter::i == 0)
+            s << "test\t\t";
+        else
+            s << "testcy\t\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
+        return s.str();
+    }
+private:
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
+};
+
+class I::Output : public I {
+public:
+    Output(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "output\t\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
+        return s.str();
+    }
+private:
+    Operand *m_l {nullptr};
+    Operand *m_r {nullptr};
+};
+
+class I::OutputK : public I {
+public:
+    OutputK(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "outputk\t\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
+        return s.str();
+    }
+private:
+    Operand *m_l {nullptr};
+    Operand *m_r {nullptr};
+};
+
+class I::Input : public I {
+public:
+    Input(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "input\t\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
+        return s.str();
+    }
+private:
+    Operand *m_l {nullptr};
+    Operand *m_r {nullptr};
 };
 
 inline Emitter& operator<<(Emitter &e, const I &i) {

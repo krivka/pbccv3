@@ -109,6 +109,11 @@ static const char *_asmCmd[] =
   "pblazasm", "$l", "$3", "$2", "$1.asm", NULL
 };
 
+static builtins _pblaze_builtins[] = {
+    {"port_out","v",2,{"c", "c"}},
+    {"port_in","c",0,{"c"}},
+    {NULL,NULL,0,{NULL}}
+};
 
 /*
  * TODO: When finishing, delete all the direct member initializers to make the 
@@ -278,7 +283,7 @@ PORT pblaze_port = {
     .eq_nne                      = 0,
     .arrayInitializerSuppported  = FALSE,
     .cseOk                       = 0,
-    .builtintable                = NULL,
+    .builtintable                = _pblaze_builtins,
     .unqualified_pointer         = GPOINTER,
     .reset_labelKey              = 0,
     .globals_allowed             = 1,
