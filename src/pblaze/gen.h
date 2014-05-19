@@ -316,17 +316,22 @@ private:
 class I::Xor : public I {
 public:
     Xor(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    Xor(Operand *l, uint8_t val) : m_l(l), m_val(val) { }
     virtual string toString() const {
         stringstream s;
         s << "xor\t\t";
         s << m_l;
         s << ",\t";
-        s << m_r;
+        if (m_r)
+            s << m_r;
+        else
+            s << "0x" << std::hex << std::uppercase << (unsigned) m_val;
         return s.str();
     }
 private:
     Operand *m_l { nullptr };
     Operand *m_r { nullptr };
+    uint8_t m_val;
 };
 
 class I::ShiftLeft : public I {

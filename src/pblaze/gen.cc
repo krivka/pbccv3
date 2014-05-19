@@ -454,6 +454,25 @@ void Or(ICode *ic) {
     }
 }
 
+void Not(ICode *ic) {
+    Operand *result = ic->getResult();
+    Operand *left = ic->getLeft();
+    Operand *right = ic->getRight();
+
+    if (*result != *left &&
+        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
+    }
+    else {
+        result = left;
+    }
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::Xor(result, right);
+    }
+}
+
 void And(ICode *ic) {
     Operand *result = ic->getResult();
     Operand *left = ic->getLeft();
@@ -526,7 +545,7 @@ void Xor(ICode *ic) {
         result = left;
     }
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-        emit << I::Xor(result, right);
+        emit << I::Xor(result, 0xFF);
     }
 }
 
@@ -552,10 +571,17 @@ void Ifx(ICode *ic) {
         else {
             Symbol *tmpLbl = (Symbol*) newiTempLabel("_tmp");
             tmpLbl->key++;
-            emit << I::Jump(ic->icFalse(), I::Jump::NC);
-            emit << I::Jump(ic->icFalse(), I::Jump::Z);
+            emit << I::Jump(tmpLbl, I::Jump::Z);
+            emit << I::Jump(tmpLbl, I::Jump::C);
+            emit << I::Jump(ic->icFalse());
             emit << tmpLbl << ":\n";
         }
+    }
+    else if (ic->getPrev()->op == EQ_OP) {
+        if (ic->icTrue())
+            emit << I::Jump(ic->icTrue(), I::Jump::Z);
+        else
+            emit << I::Jump(ic->icFalse(), I::Jump::NZ);
     }
     else {
         if (ic->icTrue())
@@ -608,6 +634,7 @@ std::map<unsigned int, genFunc> map {
     { '+', Add },
     { '-', Sub },
     { '|', Or },
+    { '!', Not },
     { BITWISEAND, And },
     { '^', Xor },
     { RIGHT_OP, ShiftRight },
@@ -631,7 +658,7 @@ ICode *stepIC() {
         if (gen)
             gen(currentIC);
         else
-            std::cerr << "  ; !!! op " << currentIC->op << "(" << getTableEntry(currentIC->op)->printName << ") in " << currentIC->filename << " on line " << currentIC->lineno << "\n";
+            std::cerr << "  ; Unimplemented operation " << currentIC->op << "(" << getTableEntry(currentIC->op)->printName << ") on " << currentIC->filename << currentIC->lineno << "\n";
     }
     ICode *previous = currentIC;
     currentIC = currentIC->getNext();

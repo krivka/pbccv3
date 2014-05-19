@@ -8,27 +8,27 @@ int Emitter::i = 0;
 
 Emitter& Emitter::operator<<(const char &s) {
     ss << s;
-    std::cerr << s;
+//     std::cerr << s;
 }
 
 Emitter& Emitter::operator<<(const char *s) {
     ss << s;
-    std::cerr << s;
+//     std::cerr << s;
 }
 
 Emitter& Emitter::operator<<(unsigned int s) {
     ss << s;
-    std::cerr << s;
+//     std::cerr << s;
 }
 
 Emitter& Emitter::operator<<(unsigned long s) {
     ss << s;
-    std::cerr << s;
+//     std::cerr << s;
 }
 
 Emitter& Emitter::operator<<(const std::string &s) {
     ss << s;
-    std::cerr << s;
+//     std::cerr << s;
 }
 
 
