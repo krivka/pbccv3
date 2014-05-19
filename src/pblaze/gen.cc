@@ -17,10 +17,15 @@ stringstream& operator<<(stringstream &ss, Operand *o) {
     }
     else if (o->isSymOp()) {
         if (!o->getSymbol()->regs[i]) {
-            o->getSymbol()->regs[i] = Bank::current()->getFreeRegister();
-            o->getSymbol()->regs[i]->occupy(o, i);
-            if (Stack::instance()->contains(o, i) || Memory::get()->containsStatic(o, i)) {
-                emit << I::Fetch(o->getSymbol()->regs[i], o);
+            Register *reg = Bank::current()->getFreeRegister();
+            reg->occupy(o, i);
+            o->getSymbol()->regs[i] = reg;
+            if (Stack::instance()->contains(o, i)) {
+                Stack::instance()->fetchVariable(o, i);
+                emit << I::Fetch(reg, Bank::currentStackPointer());
+            }
+            else if (Memory::get()->containsStatic(o, i)) {
+                emit << I::Fetch(o, Memory::get()->containsStatic(o, i)->m_pos);
             }
         }
         ss << o->getSymbol()->regs[i];
@@ -408,6 +413,64 @@ void Sub(ICode *ic) {
     }
 }
 
+
+void Or(ICode *ic) {
+    Operand *result = ic->getResult();
+    Operand *left = ic->getLeft();
+    Operand *right = ic->getRight();
+
+    if (*result != *left &&
+        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
+    }
+    else {
+        result = left;
+    }
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::Or(result, right);
+    }
+}
+
+void And(ICode *ic) {
+    Operand *result = ic->getResult();
+    Operand *left = ic->getLeft();
+    Operand *right = ic->getRight();
+
+    if (*result != *left &&
+        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
+    }
+    else {
+        result = left;
+    }
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::And(result, right);
+    }
+}
+
+void Xor(ICode *ic) {
+    Operand *result = ic->getResult();
+    Operand *left = ic->getLeft();
+    Operand *right = ic->getRight();
+
+    if (*result != *left &&
+        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
+    }
+    else {
+        result = left;
+    }
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::Xor(result, right);
+    }
+}
+
 void Ifx(ICode *ic) {
     // if we depend on the result of the previous operation, we should already
     // have what we need in the zero flag (except LT/GT)
@@ -474,6 +537,9 @@ std::map<unsigned int, genFunc> map {
 
     { '+', Add },
     { '-', Sub },
+    { '|', Or },
+    { '&', And },
+    { '^', Xor },
 
     { IFX, Ifx },
     { EQ_OP, CmpEq },

@@ -32,6 +32,9 @@ public:
     class RegBank;
     class Add;
     class Sub;
+    class Or;
+    class And;
+    class Xor;
     class Call;
     class Jump;
     class Ret;
@@ -110,25 +113,45 @@ class I::Fetch : public I {
 public:
     Fetch(Operand *res, Operand *op) : m_res(res), m_op(op) { }
     Fetch(Register *reg, Operand *op) : m_reg(reg), m_op(op) { }
+    Fetch(Register *reg, Register *rreg) : m_reg(reg), m_rreg(rreg) { }
+    Fetch(Operand *res, uint8_t addr) : m_res(res), m_addr(addr) { }
     virtual string toString() const {
         stringstream s;
         s << "fetch\t\t";
         if (m_res) {
             s << m_res;
-            s << ",\t(";
         }
         else {
             s << m_reg;
-            s << ",\t(";
         }
-        s << m_op;
-        s << ")";
+        if (m_op) {
+            s << ",\t(";
+            s << m_op;
+            s << ")";
+        }
+        else if (m_rreg) {
+            s << ",\t(";
+            s << m_rreg;
+            s << ")";
+        }
+        else {
+            s << ",\t";
+            s << m_addr;
+        }
+        // COMMENT
+        if (m_res) {
+            s << "\t\t; ";
+            s << m_res->friendlyName();
+            s << " < {stack}";
+        }
         return s.str();
     }
 private:
     Register *m_reg { nullptr };
+    Register *m_rreg { nullptr };
     Operand *m_op { nullptr };
     Operand *m_res { nullptr };
+    uint8_t m_addr;
 };
 
 class I::Store : public I {
@@ -204,7 +227,10 @@ public:
         else
             s << "0x" << std::hex << std::uppercase << (unsigned) m_val;
         // COMMENT
-        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "]";
+        if (m_reg && 0 == strcmp(m_reg->getName().c_str(), "sF"))
+            s << "\t\t; SP+=" << (unsigned) m_val;
+        else
+            s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "]";
         return s.str();
     }
 private:
@@ -238,7 +264,10 @@ public:
         else
             s << "0x" << std::hex << std::uppercase << (unsigned) m_val;
         // COMMENT
-        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "]";
+        if (m_reg && 0 == strcmp(m_reg->getName().c_str(), "sF"))
+            s << "\t\t; SP-=" << (unsigned) m_val;
+        else
+            s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "]";
         return s.str();
     }
 private:
@@ -246,6 +275,54 @@ private:
     Operand *m_r { nullptr };
     Register *m_reg { nullptr };
     uint8_t m_val;
+};
+
+class I::Or : public I {
+public:
+    Or(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "or\t\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
+        return s.str();
+    }
+private:
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
+};
+
+class I::And : public I {
+public:
+    And(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "and\t\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
+        return s.str();
+    }
+private:
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
+};
+
+class I::Xor : public I {
+public:
+    Xor(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    virtual string toString() const {
+        stringstream s;
+        s << "xor\t\t";
+        s << m_l;
+        s << ",\t";
+        s << m_r;
+        return s.str();
+    }
+private:
+    Operand *m_l { nullptr };
+    Operand *m_r { nullptr };
 };
 
 class I::Call : public I {
