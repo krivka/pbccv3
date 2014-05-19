@@ -35,6 +35,8 @@ public:
     class Or;
     class And;
     class Xor;
+    class ShiftRight;
+    class ShiftLeft;
     class Call;
     class Jump;
     class Ret;
@@ -68,6 +70,8 @@ public:
             s << "0x" << std::hex << std::uppercase << (unsigned) m_value;
         // COMMENT
         s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]=" << (m_r ? m_r->friendlyName() : m_rreg ? m_rreg->getName() : "(value)") << "[" << Emitter::i << "]";
+//         if (s.str() == "load\t\ts2,\ts3\t\t; iTemp3[0]=iTemp0[0]")
+//             CRASH();
         return s.str();
     }
 private:
@@ -211,7 +215,7 @@ public:
         stringstream s;
         if (*m_l == *m_r)
             return string({});
-        if ((!m_val && !m_r)|| (m_r && !m_r->isSymOp() && !((m_r->getValue()->getUnsignedLong() & (0xFF << (Emitter::i << 3))) >> (Emitter::i << 3))))
+        if (Emitter::i == 0 && ((!m_val && !m_r)|| (m_r && !m_r->isSymOp() && !((m_r->getValue()->getUnsignedLong() & (0xFF << (Emitter::i << 3))) >> (Emitter::i << 3)))))
             return s.str();
         if (Emitter::i == 0 || !m_r)
             s << "add\t\t";
@@ -248,7 +252,7 @@ public:
         stringstream s;
         if (*m_l == *m_r)
             return string({});
-        if ((!m_val && !m_r)|| (m_r && !m_r->isSymOp() && !((m_r->getValue()->getUnsignedLong() & (0xFF << (Emitter::i << 3))) >> (Emitter::i << 3))))
+        if (Emitter::i == 0 && ((!m_val && !m_r)|| (m_r && !m_r->isSymOp() && !((m_r->getValue()->getUnsignedLong() & (0xFF << (Emitter::i << 3))) >> (Emitter::i << 3)))))
             return s.str();
         if (Emitter::i == 0 || !m_r)
             s << "sub\t\t";
@@ -325,6 +329,38 @@ private:
     Operand *m_r { nullptr };
 };
 
+class I::ShiftLeft : public I {
+public:
+    ShiftLeft(Operand *l) : m_l(l) { }
+    virtual string toString() const {
+        stringstream s;
+        if (Emitter::i == 0)
+            s << "sl0\t\t";
+        else
+            s << "sla\t\t";
+        s << m_l;
+        return s.str();
+    }
+private:
+    Operand *m_l { nullptr };
+};
+
+class I::ShiftRight : public I {
+public:
+    ShiftRight(Operand *l) : m_l(l) { }
+    virtual string toString() const {
+        stringstream s;
+        if (Emitter::i == m_l->getType()->getSize() - 1)
+            s << "sr0\t\t";
+        else
+            s << "sra\t\t";
+        s << m_l;
+        return s.str();
+    }
+private:
+    Operand *m_l { nullptr };
+};
+
 class I::Call : public I {
 public:
     Call(ICode *ic) : m_ic(ic) { }
@@ -382,6 +418,7 @@ public:
 class I::Compare : public I {
 public:
     Compare(Operand *l, Operand *r) : m_l(l), m_r(r) { }
+    Compare(Operand *l, uint8_t val) : m_l(l), m_val(val) { }
     virtual string toString() const {
         stringstream s;
         if (Emitter::i == 0)
@@ -390,12 +427,18 @@ public:
             s << "comparecy\t";
         s << m_l;
         s << ",\t";
-        s << m_r;
+        if (m_r)
+            s << m_r;
+        else
+            s << "0x" << std::hex << std::uppercase << (unsigned) m_val;
+        //COMMENT
+        s << "\t\t; " << m_l->friendlyName() << "[" << Emitter::i << "]<=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "] ?";
         return s.str();
     }
 private:
     Operand *m_l { nullptr };
     Operand *m_r { nullptr };
+    uint8_t m_val;
 };
 
 class I::Test : public I {

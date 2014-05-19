@@ -55,6 +55,20 @@ Stack* Stack::instance() {
     return _self;
 }
 
+void Stack::preCall() {
+    int emitterStorage = Emitter::i;
+    Emitter::i;
+    int diff = m_lastValue - m_offset;
+    if (diff > 0) {
+        emit << I::Add(Bank::currentStackPointer(), diff);
+    }
+    else {
+        emit << I::Sub(Bank::currentStackPointer(), -diff);
+    }
+    m_offset = m_lastValue;
+    Emitter::i = emitterStorage;
+}
+
 void Stack::functionStart() {
     m_offset = 0;
     m_lastValue = 0;
@@ -66,18 +80,18 @@ void Stack::functionEnd() {
 }
 
 void Stack::pushVariable(Operand* op, int index) {
-    int iStorage = Emitter::i;
+    int emitterStorage = Emitter::i;
     Emitter::i = index;
     StackCell *loc = contains(op, index);
     if (loc) {
-        int diff = loc->m_pos - m_offset;
+        int diff = loc->m_pos - m_offset + index;
         if (diff > 0) {
             emit << I::Add(Bank::currentStackPointer(), diff);
         }
         else if (diff < 0) {
             emit << I::Sub(Bank::currentStackPointer(), -diff);
         }
-        m_offset += diff + 1;
+        m_offset += diff;
     }
     else {
         int diff = m_lastValue - m_offset + index;
@@ -92,8 +106,7 @@ void Stack::pushVariable(Operand* op, int index) {
         m_lastValue += op->getType()->getSize();
     }
     emit << I::Store(op);
-    emit << I::Add(Bank::currentStackPointer(), 1);
-    Emitter::i = iStorage;
+    Emitter::i = emitterStorage;
 }
 
 void Stack::fetchVariable(Operand* op, int index) {
@@ -103,7 +116,7 @@ void Stack::fetchVariable(Operand* op, int index) {
         cerr << "Warning: Can't find variable" << op->getSymbol()->rname << "on stack!\n";
         return;
     }
-    int diff = cell->m_pos - m_offset;
+    int diff = cell->m_pos - m_offset + index;
     m_offset += diff;
     if (diff > 0)
         emit << I::Add(Bank::currentStackPointer(), diff);
@@ -147,16 +160,16 @@ void Bank::swap() {
     m_first = m_first ? false : true;
 }
 
-Register* Bank::getFreeRegister(int seq) {
+Register* Bank::getFreeRegister() {
     // first look for a free register
-    for (int i = 0; i < VAR_REG_CNT; i++) {
+    for (int i = VAR_REG_START; i < VAR_REG_END; i++) {
         if (m_regs[i].isFree())
             return &m_regs[i];
     }
 
     // then look for a register containing a dead variable
-    for (int i = 0; i < VAR_REG_CNT; i++) {
-        if (m_regs[i].m_oper && m_regs[i].m_oper->getSymbol()->liveTo < seq) {
+    for (int i = VAR_REG_START; i < VAR_REG_END; i++) {
+        if (m_regs[i].m_oper && m_regs[i].m_oper->getSymbol()->liveTo < Allocator::seq) {
             m_regs[i].clear();
             return &m_regs[i];
         }
@@ -167,7 +180,7 @@ Register* Bank::getFreeRegister(int seq) {
     int latest = INT_MAX;
     Register *toFree = m_regs;
 
-    for (int i = 0; i < VAR_REG_CNT; i++) {
+    for (int i = VAR_REG_START; i < VAR_REG_END; i++) {
         if (m_regs[i].m_oper && m_regs[i].m_oper->getSymbol()->liveTo < latest) {
             toFree = &m_regs[i];
             latest = m_regs[i].m_oper->getSymbol()->liveTo;
@@ -178,7 +191,7 @@ Register* Bank::getFreeRegister(int seq) {
 }
 
 void Bank::purge() {
-    for (int i = 0; i < VAR_REG_CNT; i++) {
+    for (int i = 0; i < VAR_REG_END; i++) {
         m_regs[i].purge();
     }
 }

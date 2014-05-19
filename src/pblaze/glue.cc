@@ -609,19 +609,15 @@ void pblaze_glue(void)
         */
 
         //fprintf(asmFile, "\tLOAD\tsF, %s%02x\n", pblaze_options.dialect ? "" : "$", MEMSIZE - 1);
-        fprintf(asmFile, "\tJUMP\t__sdcc_program_startup\n");
+        fprintf(asmFile, "\tjump\t_main\n");
     }
 
     fprintf(asmFile, "%s" "; Home\n" "%s", pblaze_iComments2, pblaze_iComments2);
     dbuf_write_and_destroy(&home->oBuf, asmFile);
 
     if (pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type)) {
-        /* entry point @ start of HOME */
-        fprintf(asmFile, "__sdcc_program_startup:\n");
-
-        /* put in jump or call to main */
-        fprintf(asmFile, "\tCALL\t_main\n");
         if (!options.noCcodeInAsm)
+        fprintf(asmFile, "%s", Emitter::contents());
         fprintf(asmFile, ";\treturn from main will lock up\n");
         fprintf(asmFile, "__sdcc_loop:\n");
         fprintf(asmFile, "\tJUMP\t__sdcc_loop\n");

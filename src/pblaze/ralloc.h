@@ -15,6 +15,15 @@ extern "C" {
 void pblaze_assignRegisters(ebbIndex *ebbi);
 void pblaze_genCodeLoop(void);
 
+#define MEMORY_SIZE 256
+
+#define REG_CNT 16
+#define ARG_REG_CNT 8
+#define VAR_REG_START (Function::registerSize)
+#define VAR_REG_END (REG_CNT)
+#define VAR_REG_CNT (VAR_REG_END - VAR_REG_START)
+#define PBLAZE_FREG 0
+
 #ifdef __cplusplus
 }
 
@@ -25,12 +34,6 @@ void pblaze_genCodeLoop(void);
 #include <iostream>
 #include <sstream>
 #include <list>
-
-#define MEMORY_SIZE 256
-
-#define REG_CNT 16
-#define VAR_REG_CNT REG_CNT - 1
-#define PBLAZE_FREG 0
 
 using namespace std;
 
@@ -112,6 +115,7 @@ public:
     static Stack *instance();
     void pushVariable(Operand *op, int index);
     void fetchVariable(Operand *op, int index);
+    void preCall();
     void functionStart();
     void functionEnd();
     void loadAddress(Operand *res, Operand *obj);
@@ -161,7 +165,7 @@ public:
         m_first = first;
     }
     static void swap();
-    Register *getFreeRegister(int seq = -1);
+    Register *getFreeRegister();
     static Register *currentStackPointer() {
         return &(current()->m_regs[REG_CNT - 1]);
     }

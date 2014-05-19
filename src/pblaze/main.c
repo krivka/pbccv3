@@ -24,9 +24,6 @@
 #include "ralloc.h"
 #include "glue.h"
 
-
-#define SEND_REG_COUNT 15
-
 void pblaze_init(void) {
 }
 
@@ -44,10 +41,7 @@ void pblaze_finaliseOptions(void) {
 void pblaze_setDefaultOptions(void) {
 }
 
-#define NREGS 16
 extern struct dbuf_s *codeOutBuf;
-operand *register_vars[NREGS] = { 0 };
-
 
 const char *pblaze_getRegName(const struct reg_info *reg) {
     /*
@@ -77,11 +71,11 @@ void pblaze_reset_regparms(void) {
 }
 
 int pblaze_reg_parm(struct sym_link *link, bool reentrant) {
-    if (regParmFlg < SEND_REG_COUNT) {
+    if (regParmFlg < ARG_REG_CNT) {
         int size;
-        if ((size = getSize(link)) > (SEND_REG_COUNT - regParmFlg)) {
+        if ((size = getSize(link)) > (ARG_REG_CNT - regParmFlg)) {
             /* all remaining go on stack */
-            regParmFlg = SEND_REG_COUNT;
+            regParmFlg = ARG_REG_CNT;
             return 0;
         }
         regParmFlg += size;
@@ -220,7 +214,7 @@ PORT pblaze_port = {
     },
     .support                     = {
         .muldiv                      = 0,
-        .shift                       = -1
+        .shift                       = 1
     },
     .debugger                    = {
         .emitDebuggerSymbol          = NULL,
@@ -276,8 +270,8 @@ PORT pblaze_port = {
     .use_dw_for_init             = FALSE,
     .little_endian               = TRUE,
     .lt_nge                      = 0,
-    .gt_nle                      = 0,
-    .le_ngt                      = 1,
+    .gt_nle                      = 1,
+    .le_ngt                      = 0,
     .ge_nlt                      = 1,
     .ne_neq                      = 1,
     .eq_nne                      = 0,

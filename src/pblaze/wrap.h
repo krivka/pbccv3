@@ -213,8 +213,7 @@ public:
     string getLabelName() {
         if (islbl) {
             stringstream s;
-            s << "_L";
-            s << key + 100;
+            s << name << "_" << key;
             return s.str();
         }
         return "";

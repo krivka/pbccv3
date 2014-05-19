@@ -2,6 +2,7 @@
 #include "util.h"
 #include "wrap.h"
 #include <map>
+#include <boost/concept_check.hpp>
 
 stringstream& operator<<(stringstream &ss, Operand *o) {
     int i = Emitter::i;
@@ -117,7 +118,7 @@ void Call(ICode *ic) {
     if (Function::isMain) {
         if (ic->op == PCALL) {
             for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
-                emit << I::Star(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
+                emit << I::Star(&Bank::current()->regs()[VAR_REG_END-1-Emitter::i], ic->getLeft());
             }
         }
         // treat the previous variables as invalid (stored on stack)
@@ -125,6 +126,7 @@ void Call(ICode *ic) {
             Bank::current()->regs()[i].clear();
         }
         // propagate the current stack pointer
+        Stack::instance()->preCall();
         emit << I::Star(&Bank::current()->regs()[REG_CNT-1], &Bank::current()->regs()[REG_CNT-1]);
         Bank::swap();
     }
@@ -132,13 +134,13 @@ void Call(ICode *ic) {
         unsigned argcnt = 0;
         Value *args = (Value*) ic->getLeft()->getType()->funcAttrs.args;
         while (args) {
-            if (argcnt + args->getType()->getSize() < VAR_REG_CNT)
+            if (argcnt + args->getType()->getSize() < ARG_REG_CNT)
                 argcnt += args->getType()->getSize();
             else
                 break;
             args = args->getNext();
         }
-        for( ; argcnt < VAR_REG_CNT; argcnt++) {
+        for( ; argcnt < ARG_REG_CNT; argcnt++) {
             Register *reg = &Bank::current()->regs()[argcnt];
             if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
                 Symbol *sym = reg->m_oper->getSymbol();
@@ -148,17 +150,15 @@ void Call(ICode *ic) {
             }
         }
         if (ic->op == PCALL) {
-            if (argcnt >= VAR_REG_CNT - 2) {
-                cerr << "Warning: You're calling a pointer (" << ic->getLeft() << ") to a function that has too many arguments. This will result in undefined behavior.\n";
-            }
             for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
-                emit << I::Load(&Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i], ic->getLeft());
+                emit << I::Load(&Bank::current()->regs()[VAR_REG_END-1-Emitter::i], ic->getLeft());
                 if (ic->getLeft()->getSymbol()->regs[Emitter::i]) {
                     ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
                 }
-                ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_CNT-1-Emitter::i];
+                ic->getLeft()->getSymbol()->regs[Emitter::i] = &Bank::current()->regs()[VAR_REG_END-1-Emitter::i];
             }
         }
+        Stack::instance()->preCall();
     }
     emit << I::Call(ic);
     if (Function::isMain) {
@@ -169,7 +169,7 @@ void Call(ICode *ic) {
     }
     else {
         // treat the previous variables as invalid (stored on stack)
-        for (int i = 0; i < VAR_REG_CNT; i++) {
+        for (int i = VAR_REG_START; i < VAR_REG_END; i++) {
             if (Bank::current()->regs()[i].m_oper)
                 Bank::current()->regs()[i].m_oper->getSymbol()->regs[Bank::current()->regs()[i].m_index] = nullptr;
             Bank::current()->regs()[i].purge();
@@ -186,7 +186,7 @@ void Return(ICode *ic) {
     Operand *left = ic->getLeft();
 
     // First store any changes to variables that will live longer than scope of this function
-    for (int i = 0; i < VAR_REG_CNT; i++) {
+    for (int i = VAR_REG_START; i < VAR_REG_END; i++) {
         Register *reg = &Bank::current()->regs()[i];
         if (reg && reg->m_oper && reg->m_oper->liveTo() > ic->seq) {
             reg->clear();
@@ -292,7 +292,10 @@ void Assign(ICode *ic) {
 
     // stuffing parameters in the call
     if (ic->isInFunctionCall()) {
-        // Don't bother, these go on stack
+        for (Emitter::i = 0; Emitter::i < result->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, right);
+            Stack::instance()->pushVariable(result, Emitter::i);
+        }
     }
     // assignment to a pointer
     else if (ic->isPointerSet()) {
@@ -342,17 +345,36 @@ void AddressOf(ICode *ic) {
 }
 
 void AtAddress(ICode *ic) {
+    Operand *left = ic->getLeft();
+    Operand *result = ic->getResult();
+    if (ic->getNext()->op == '=' && ic->getNext()->getRight() == ic->getResult())
+        result = ic->getNext()->getResult();
     for (Emitter::i = 0; Emitter::i < ic->getResult()->getType()->getSize(); Emitter::i++)
-        emit << I::Fetch(ic->getResult(), ic->getLeft());
+        emit << I::Fetch(result, left);
 }
 
 void Cast(ICode *ic) {
-    if (!ic->getRight()->isITmp()) {
+    emit << "\t\t\t\t\t\t; Casting " << ic->getRight()->friendlyName() << " (" << ic->getRight()->getType()->getSize() << ") to " << ic->getResult()->friendlyName() << " (" << ic->getResult()->getType()->getSize() << ")\n";
+    if (!ic->getRight()->isITmp() || ic->getRight()->liveTo() > ic->seq) {
         for (Emitter::i = 0; Emitter::i < ic->getRight()->getType()->getSize(); Emitter::i++) {
-            Register *reg = ic->getRight()->getSymbol()->regs[Emitter::i];
-            reg->clear();
-            reg->occupy(ic->getResult(), Emitter::i);
-            ic->getResult()->getSymbol()->regs[Emitter::i] = reg;
+            Register *reg = ic->getResult()->getSymbol()->regs[Emitter::i];
+            if (!reg) {
+                reg = Bank::current()->getFreeRegister();
+                reg->occupy(ic->getResult(), Emitter::i);
+                ic->getResult()->getSymbol()->regs[Emitter::i] = reg;
+            }
+
+            Register *regR = ic->getRight()->getSymbol()->regs[Emitter::i];
+            if (regR) {
+                emit << I::Load(reg, ic->getRight());
+            }
+            else if (Stack::instance()->contains(ic->getRight(), Emitter::i)) {
+                Stack::instance()->fetchVariable(ic->getRight(), Emitter::i);
+                emit << I::Fetch(reg, Bank::currentStackPointer());
+            }
+            else if (Memory::get()->containsStatic(ic->getRight(), Emitter::i)) {
+                emit << I::Fetch(ic->getResult(), (uint8_t) Memory::get()->containsStatic(ic->getRight(), Emitter::i)->m_pos);
+            }
         }
     }
     else {
@@ -367,7 +389,6 @@ void Cast(ICode *ic) {
             }
         }
     }
-    emit << "\t\t\t\t\t\t; Casting " << ic->getRight()->friendlyName() << " (" << ic->getRight()->getType()->getSize() << ") to " << ic->getResult()->friendlyName() << " (" << ic->getResult()->getType()->getSize() << ")\n";
 
     // fill the rest with zeroes
     for (Emitter::i = ic->getRight()->getType()->getSize(); Emitter::i < ic->getResult()->getType()->getSize(); Emitter::i++) {
@@ -452,6 +473,44 @@ void And(ICode *ic) {
     }
 }
 
+void ShiftLeft(ICode *ic) {
+    Operand *result = ic->getResult();
+    Operand *left = ic->getLeft();
+    Operand *right = ic->getRight();
+
+    if (*result != *left &&
+        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
+    }
+    else {
+        result = left;
+    }
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+        emit << I::ShiftLeft(result);
+    }
+}
+
+void ShiftRight(ICode *ic) {
+    Operand *result = ic->getResult();
+    Operand *left = ic->getLeft();
+    Operand *right = ic->getRight();
+
+    if (*result != *left &&
+        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result)) {
+        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+            emit << I::Load(result, left);
+        }
+    }
+    else {
+        result = left;
+    }
+    for (Emitter::i = left->getType()->getSize() - 1; Emitter::i >= 0 ; Emitter::i--) {
+        emit << I::ShiftRight(result);
+    }
+}
+
 void Xor(ICode *ic) {
     Operand *result = ic->getResult();
     Operand *left = ic->getLeft();
@@ -476,7 +535,7 @@ void Ifx(ICode *ic) {
     // have what we need in the zero flag (except LT/GT)
     if (ic->getPrev()->getResult() != ic->getCondition()) {
         for (Emitter::i = 0; Emitter::i < ic->getCondition()->getType()->getSize(); Emitter::i++) {
-            emit << I::Test(ic->getCondition(), ic->getCondition());
+            emit << I::Compare(ic->getCondition(), (uint8_t) 0);
         }
     }
     if (ic->getPrev()->op == '<') {
@@ -485,11 +544,18 @@ void Ifx(ICode *ic) {
         else
             emit << I::Jump(ic->icFalse(), I::Jump::NC);
     }
-    else if (ic->getPrev()->op == '>') {
-        if (ic->icTrue())
-            emit << I::Jump(ic->icTrue(), I::Jump::NC);
-        else
-            emit << I::Jump(ic->icFalse(), I::Jump::C);
+    else if (ic->getPrev()->op == LE_OP) {
+        if (ic->icTrue()) {
+            emit << I::Jump(ic->icTrue(), I::Jump::C);
+            emit << I::Jump(ic->icTrue(), I::Jump::Z);
+        }
+        else {
+            Symbol *tmpLbl = (Symbol*) newiTempLabel("_tmp");
+            tmpLbl->key++;
+            emit << I::Jump(ic->icFalse(), I::Jump::NC);
+            emit << I::Jump(ic->icFalse(), I::Jump::Z);
+            emit << tmpLbl << ":\n";
+        }
     }
     else {
         if (ic->icTrue())
@@ -518,6 +584,10 @@ void InlineAsm(ICode *ic) {
     emit << ic->inlineAsm;
 }
 
+void Dummy(ICode *ic) {
+    
+}
+
 std::map<unsigned int, genFunc> map {
     { FUNCTION, Function },
     { RETURN, Return },
@@ -538,14 +608,18 @@ std::map<unsigned int, genFunc> map {
     { '+', Add },
     { '-', Sub },
     { '|', Or },
-    { '&', And },
+    { BITWISEAND, And },
     { '^', Xor },
+    { RIGHT_OP, ShiftRight },
+    { LEFT_OP, ShiftLeft },
 
     { IFX, Ifx },
     { EQ_OP, CmpEq },
     { '<', CmpLt },
+    { LE_OP, CmpLt },
 
     { INLINEASM, InlineAsm },
+    { DUMMY_READ_VOLATILE, Dummy }
 };
 
 };
