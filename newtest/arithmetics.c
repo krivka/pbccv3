@@ -16,4 +16,5 @@ char arithmetics() {
 void main() {
     arithmetics();
     END_EXECUTION;
+    // s0 == 0x41
 }

@@ -500,6 +500,7 @@ bool Picoblaze::stepPB6 ( void ) {
     case 0x024000 : { // 0x24000 ... 0x24FFF : // CALL sX, sY
             if ( sp > 30 )
                 return false ;
+            stack[ sp++ ].pc = npc ;
             int sX = registers[ bank ][ DestReg ( c ) ].value ;
             int sY = registers[ bank ][ SrcReg ( c ) ].value ;
             npc = ( ( sX << 8 ) & 0x0F ) | sY ;

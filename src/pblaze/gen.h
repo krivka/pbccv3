@@ -130,7 +130,8 @@ public:
         }
         if (m_op) {
             s << ",\t(";
-            s << m_op;
+            if (m_op->isSymOp())
+                s <<  m_op->getSymbol()->regs[0];
             s << ")";
         }
         else if (m_rreg) {
@@ -168,7 +169,10 @@ public:
         if (m_r) {
             s << m_r;
             s << ",\t(";
-            s << m_op;
+            if (m_op->isSymOp())
+                s << m_op->getSymbol()->regs[0];
+            else
+                s << m_op;
             s << ")";
         }
         else {

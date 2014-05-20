@@ -1,3 +1,5 @@
+#include "pbcc3_test.h"
+
 struct test{
     int a;
     char b;
@@ -12,4 +14,6 @@ int test() {
 
 void main(void) {
     test();
+    END_EXECUTION;
+    // s0 == 0x66, s1 == 0x44
 }

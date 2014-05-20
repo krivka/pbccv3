@@ -617,28 +617,20 @@ void pblaze_glue(void)
 
     if (pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type)) {
         if (!options.noCcodeInAsm)
-        fprintf(asmFile, "%s", Emitter::contents());
         fprintf(asmFile, ";\treturn from main will lock up\n");
         fprintf(asmFile, "__sdcc_loop:\n");
-        fprintf(asmFile, "\tJUMP\t__sdcc_loop\n");
+        fprintf(asmFile, "\tjump\t__sdcc_loop\n");
     }
     /* copy over code */
     fprintf(asmFile, "%s", pblaze_iComments2);
     fprintf(asmFile, "; code\n");
     fprintf(asmFile, "%s", pblaze_iComments2);
     dbuf_write_and_destroy(&code->oBuf, asmFile);
+    fprintf(asmFile, "%s", Emitter::contents());
+    fprintf(asmFile, "%s", "\tjump __sdcc_loop\n");
 
     if (port->genAssemblerEnd) {
         port->genAssemblerEnd(asmFile);
     }
-
-    /* copy the interrupt vector table */
-    if (pblaze_mainf && IFFUNC_HASBODY(pblaze_mainf->type)) {
-    fprintf(asmFile, "%s", pblaze_iComments2);
-    fprintf(asmFile, "; interrupt vector \n");
-    fprintf(asmFile, "%s", pblaze_iComments2);
-    dbuf_write_and_destroy(&vBuf, asmFile);
-    }
-
     fclose(asmFile);
 }

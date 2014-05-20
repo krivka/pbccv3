@@ -20,7 +20,7 @@ void pblaze_genCodeLoop(void);
 #define REG_CNT 16
 #define ARG_REG_CNT 8
 #define VAR_REG_START (Function::registerSize)
-#define VAR_REG_END (REG_CNT)
+#define VAR_REG_END (REG_CNT - 1)
 #define VAR_REG_CNT (VAR_REG_END - VAR_REG_START)
 #define PBLAZE_FREG 0
 

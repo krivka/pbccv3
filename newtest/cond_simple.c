@@ -40,4 +40,5 @@ char test() {
 void main() {
     test();
     END_EXECUTION;
+    // s0 == 0xFF
 }

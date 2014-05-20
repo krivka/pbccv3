@@ -1,12 +1,14 @@
 #include "pbcc3_test.h"
 
 void main(void) {
-    volatile char foo = 11;
-    volatile int bar = 333;
-    volatile long baz = 77777;
+    volatile char foo = 0x87;
+    volatile int bar = 0x5678;
+    volatile long baz = 0x12340000;
 
-    bar += foo;
+    foo += bar;
     baz += bar;
-    foo = baz;
+    bar += 0x5443;
+    (void) foo, bar, baz;
     END_EXECUTION;
+    // foo == 0xFF, bar == 0xAABB, baz == 0x12345678 - these bytes have to be somewhere
 }

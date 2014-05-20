@@ -36,7 +36,8 @@ src/*
 # neither configure generated files
 *.dep
 autom4te.cache
-*Makefile
+Makefile
+src/pblaze/Makefile
 Makefile.common
 config.log
 config.status
@@ -49,9 +50,12 @@ sdccconf.h
 .svn/
 # and finally, build results
 bin/
+test/src/tools/asm
+test/src/tools/sim
 *.[oa]
 pbccv3.kdev4
 # compiler output as well
 *.psm
 *.err
 *.trl
+*.lst

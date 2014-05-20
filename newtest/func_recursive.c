@@ -9,4 +9,5 @@ int addToZero(int x) {
 void main(void) {
     volatile int result = addToZero(5);
     END_EXECUTION;
+    // s0 == 0x0F, s1 == 0x00
 }
