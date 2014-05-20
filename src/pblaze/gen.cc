@@ -118,7 +118,7 @@ void Call(ICode *ic) {
     if (Function::isMain) {
         if (ic->op == PCALL) {
             for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
-                emit << I::Star(&Bank::current()->regs()[VAR_REG_END-2-Emitter::i], ic->getLeft());
+                emit << I::Star(&Bank::current()->regs()[VAR_REG_END-1-Emitter::i], ic->getLeft());
             }
         }
         // treat the previous variables as invalid (stored on stack)
@@ -151,7 +151,7 @@ void Call(ICode *ic) {
         }
         if (ic->op == PCALL) {
             for (Emitter::i = 0; Emitter::i < ic->getLeft()->getType()->getSize(); Emitter::i++) {
-                emit << I::Load(&Bank::current()->regs()[VAR_REG_END-2-Emitter::i], ic->getLeft());
+                emit << I::Load(&Bank::current()->regs()[VAR_REG_END-1-Emitter::i], ic->getLeft());
                 if (ic->getLeft()->getSymbol()->regs[Emitter::i]) {
                     ic->getLeft()->getSymbol()->regs[Emitter::i]->purge();
                 }
@@ -323,7 +323,7 @@ void Assign(ICode *ic) {
         }
     }
     // assignment from a temporary local variable
-    else if (right->isITmp() && right->isSymOp()) {
+    else if (right->isITmp() && right->isSymOp() && right->liveTo() <= ic->seq) {
         for (int i = 0; i < right->getType()->getSize(); i++) {
             if (!right->getSymbol()->regs[i]) {
                 continue;
@@ -332,7 +332,7 @@ void Assign(ICode *ic) {
             result->getSymbol()->regs[i]->m_oper = result;
             right->getSymbol()->regs[i] = nullptr;
         }
-        emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << right->friendlyName() << "\n";
+        emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << right->friendlyName() << "(=)\n";
     }
     // assignment to a regular local variable
     else {
@@ -361,6 +361,7 @@ void AtAddress(ICode *ic) {
         result = ic->getNext()->getResult();
     for (Emitter::i = 0; Emitter::i < result->getType()->getSize(); Emitter::i++) {
         if (!left->getSymbol()->regs[0]) {
+            cerr << "HYR" << left->friendlyName();
             Register *reg = Bank::current()->getFreeRegister();
             reg->occupy(ic->getResult(), Emitter::i);
             ic->getResult()->getSymbol()->regs[Emitter::i] = reg;
@@ -455,7 +456,7 @@ void Add(ICode *ic) {
             }
         }
         if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "\n";
+            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(+)\n";
     }
     else {
         result = left;
@@ -485,7 +486,7 @@ void Sub(ICode *ic) {
             }
         }
         if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "\n";
+            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(-)\n";
     }
     else {
         result = left;
@@ -516,7 +517,7 @@ void Or(ICode *ic) {
             }
         }
         if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "\n";
+            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(|)\n";
     }
     else {
         result = left;
@@ -546,13 +547,13 @@ void Not(ICode *ic) {
             }
         }
         if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "\n";
+            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(~)\n";
     }
     else {
         result = left;
     }
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-        emit << I::Xor(result, right);
+        emit << I::Xor(result, 0xFF);
     }
 }
 
@@ -576,7 +577,7 @@ void And(ICode *ic) {
             }
         }
         if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "\n";
+            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(&)\n";
     }
     else {
         result = left;
@@ -606,7 +607,7 @@ void ShiftLeft(ICode *ic) {
             }
         }
         if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "\n";
+            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(<<)\n";
     }
     else {
         result = left;
@@ -636,7 +637,7 @@ void ShiftRight(ICode *ic) {
             }
         }
         if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "\n";
+            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(>>)\n";
     }
     else {
         result = left;
@@ -666,13 +667,13 @@ void Xor(ICode *ic) {
             }
         }
         if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "\n";
+            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(^)\n";
     }
     else {
         result = left;
     }
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-        emit << I::Xor(result, 0xFF);
+        emit << I::Xor(result, right);
     }
 }
 

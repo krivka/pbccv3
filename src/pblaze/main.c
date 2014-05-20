@@ -214,7 +214,7 @@ PORT pblaze_port = {
     },
     .support                     = {
         .muldiv                      = 0,
-        .shift                       = 1
+        .shift                       = 1,
     },
     .debugger                    = {
         .emitDebuggerSymbol          = NULL,

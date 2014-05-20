@@ -22,5 +22,5 @@ int test() {
 void main() {
     test();
     END_EXECUTION;
-    // s0 == 0x88, s1 == 0x0
+    // s0 == F6, s1 == 0x03
 }
