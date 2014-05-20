@@ -21,5 +21,9 @@
 #ifndef MAIN_INCLUDE
 #define MAIN_INCLUDE
 
+typedef struct {
+    int argreg;
+} pblaze_options_t;
+extern pblaze_options_t pblaze_options;
 
 #endif

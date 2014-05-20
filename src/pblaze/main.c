@@ -23,11 +23,32 @@
 #include "dbuf_string.h"
 #include "ralloc.h"
 #include "glue.h"
+#include <stdio.h>
+#include <string.h>
+
+#define ARGREG_OPT "--argreg="
+pblaze_options_t pblaze_options = {
+    8
+};
+OPTION pblaze_optionsTable[] = {
+    {0, ARGREG_OPT, &pblaze_options.argreg,
+     "sets the count of registers to be used by function arguments (default: 8)"},
+    {0, NULL, NULL, NULL}
+};
 
 void pblaze_init(void) {
 }
 
 bool pblaze_parseOption(int *pargc, char **argv, int *i) {
+    if (0 == strncmp(argv[*i], ARGREG_OPT, strlen(ARGREG_OPT))) {
+        char *number = getStringArg(ARGREG_OPT, argv, i, *pargc);
+        pblaze_options.argreg = strtoul(number, NULL, 10);
+        if (pblaze_options.argreg <= 0 || pblaze_options.argreg > 13) {
+            fprintf(stderr, "argreg must be in range [1, 13]\n");
+            exit(EXIT_FAILURE);
+        }
+        return TRUE;
+    }
     return false;
     // currently does nothing as no options are allowed
 }
@@ -214,7 +235,7 @@ PORT pblaze_port = {
     },
     .support                     = {
         .muldiv                      = 0,
-        .shift                       = 1,
+        .shift                       = -1,
     },
     .debugger                    = {
         .emitDebuggerSymbol          = NULL,
@@ -230,8 +251,8 @@ PORT pblaze_port = {
         },
     },
     .jumptableCost               = {
-        .maxCount                    = 32,
-        .sizeofElement               = 2,
+        .maxCount                    = 0,
+        .sizeofElement               = 0,
         .sizeofMatchJump             = {
                                         2,
                                         2, 
@@ -248,7 +269,7 @@ PORT pblaze_port = {
     .fun_prefix                  = "_",
     .init                        = pblaze_init,
     .parseOption                 = pblaze_parseOption,
-    .poptions                    = NULL,
+    .poptions                    = pblaze_optionsTable,
     .initPaths                   = NULL,
     .finaliseOptions             = pblaze_finaliseOptions,
     .setDefaultOptions           = pblaze_setDefaultOptions,

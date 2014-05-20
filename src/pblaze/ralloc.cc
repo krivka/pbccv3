@@ -70,8 +70,8 @@ void Stack::preCall() {
 }
 
 void Stack::functionStart() {
-    m_offset = 0;
-    m_lastValue = 0;
+    m_offset = Function::stackSize;
+    m_lastValue = Function::stackSize;
 }
 
 void Stack::functionEnd() {
@@ -107,6 +107,11 @@ void Stack::pushVariable(Operand* op, int index) {
     }
     emit << I::Store(op);
     Emitter::i = emitterStorage;
+}
+
+void Stack::insert(Operand* o, int pos, int offset) {
+    m_mem[pos+offset].m_oper = o;
+    m_mem[pos+offset].m_index= offset;
 }
 
 void Stack::fetchVariable(Operand* op, int index) {

@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+char nameBuf[256] = { 0 };
+
 bool ICode::isUsedInCurrentInstruction(Operand* op) {
     if (getLeft() && getLeft() == op)
         return true;

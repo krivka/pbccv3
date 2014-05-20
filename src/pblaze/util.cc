@@ -50,7 +50,7 @@ void Function::processNew(ICode* ic) {
     Value *args = (Value*) ic->getLeft()->getType()->funcAttrs.args;
     while (args) {
         Function::argumentCnt++;
-        if (Function::registerSize + args->getType()->getSize() < VAR_REG_CNT && !Function::stackSize)
+        if (Function::registerSize + args->getType()->getSize() <= ARG_REG_CNT && !Function::stackSize)
             Function::registerSize += args->getType()->getSize();
         else
             Function::stackSize += args->getType()->getSize();

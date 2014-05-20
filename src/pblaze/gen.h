@@ -69,7 +69,14 @@ public:
         else
             s << "0x" << std::hex << std::uppercase << (unsigned) m_value;
         // COMMENT
-        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]=" << (m_r ? m_r->friendlyName() : m_rreg ? m_rreg->getName() : "(value)") << "[" << Emitter::i << "]";
+        s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]=";
+        if (m_r)
+            s << m_r->friendlyName();
+        else if (m_rreg)
+            s << m_rreg->getName();
+        else
+            s << (unsigned) m_value;
+        s << "[" << Emitter::i << "]";
 //         if (s.str() == "load\t\ts2,\ts3\t\t; iTemp3[0]=iTemp0[0]")
 //             CRASH();
         return s.str();
@@ -141,13 +148,13 @@ public:
         }
         else {
             s << ",\t";
-            s << m_addr;
+            s << "0x" << std::hex << std::uppercase << (unsigned) m_addr;
         }
         // COMMENT
         if (m_res) {
             s << "\t\t; ";
             s << m_res->friendlyName();
-            s << " < {stack}";
+            s << " < {mem}";
         }
         return s.str();
     }
@@ -183,7 +190,7 @@ public:
         }
         // COMMENT
         if (m_op) {
-            s << "\t\t; {stack} < ";
+            s << "\t\t; {mem} < ";
             s << m_op->friendlyName() << "[" << Emitter::i << "]";
         }
         return s.str();
@@ -237,8 +244,15 @@ public:
         // COMMENT
         if (m_reg && 0 == strcmp(m_reg->getName().c_str(), "sF"))
             s << "\t\t; SP+=" << (unsigned) m_val;
-        else
-            s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "]";
+        else {
+            s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) 
+            << "[" << Emitter::i << "]+=";
+            if (m_r)
+                s << m_r->friendlyName();
+            else
+                s << (unsigned) m_val;
+            s << "[" << Emitter::i << "]";
+        }
         return s.str();
     }
 private:
@@ -274,8 +288,14 @@ public:
         // COMMENT
         if (m_reg && 0 == strcmp(m_reg->getName().c_str(), "sF"))
             s << "\t\t; SP-=" << (unsigned) m_val;
-        else
-            s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "]";
+        else {
+            s << "\t\t; " << (m_l ? m_l->friendlyName() : m_reg->getName()) << "[" << Emitter::i << "]+=";
+            if (m_r)
+                s << m_r->friendlyName();
+            else
+                s << (unsigned) m_val;
+            s << "[" << Emitter::i << "]";
+        }
         return s.str();
     }
 private:
@@ -294,6 +314,8 @@ public:
         s << m_l;
         s << ",\t";
         s << m_r;
+        // COMMENT
+        s << "\t\t; " << m_l->friendlyName() << "[" << Emitter::i  << "]|=" << m_r->friendlyName();
         return s.str();
     }
 private:
@@ -310,6 +332,8 @@ public:
         s << m_l;
         s << ",\t";
         s << m_r;
+        // COMMENT
+        s << "\t\t; " << m_l->friendlyName() << "[" << Emitter::i  << "]&=" << m_r->friendlyName();
         return s.str();
     }
 private:
@@ -330,6 +354,12 @@ public:
             s << m_r;
         else
             s << "0x" << std::hex << std::uppercase << (unsigned) m_val;
+        // COMMENT
+        s << "\t\t; " << m_l->friendlyName() << "[" << Emitter::i  << "]^=";
+        if (m_r)
+            s << m_r->friendlyName();
+        else
+            s << (unsigned) m_val;
         return s.str();
     }
 private:
@@ -348,6 +378,8 @@ public:
         else
             s << "sla\t\t";
         s << m_l;
+        // COMMENT
+        s << "\t\t\t; " << m_l->friendlyName() << "[" << Emitter::i  << "]<<=1";
         return s.str();
     }
 private:
@@ -364,6 +396,8 @@ public:
         else
             s << "sra\t\t";
         s << m_l;
+        // COMMENT
+        s << "\t\t\t; " << m_l->friendlyName() << "[" << Emitter::i  << "]>>=1";
         return s.str();
     }
 private:
@@ -441,7 +475,12 @@ public:
         else
             s << "0x" << std::hex << std::uppercase << (unsigned) m_val;
         //COMMENT
-        s << "\t\t; " << m_l->friendlyName() << "[" << Emitter::i << "]<=" << (m_r ? m_r->friendlyName() : "(value)") << "[" << Emitter::i << "] ?";
+        s << "\t\t; " << m_l->friendlyName() << "[" << Emitter::i << "]<=";
+        if (m_r)
+            s << m_r;
+        else 
+            s << (unsigned) m_val;
+        s << "[" << Emitter::i << "] ?";
         return s.str();
     }
 private:

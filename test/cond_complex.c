@@ -5,7 +5,7 @@ int test() {
     volatile char foo = 0xFF, bar = 0xAA;
     volatile int qux = 0;
 
-    for (i = foo | bar; i < foo + bar; foo &= bar ^ 0xA0) {
+    for (i = (~foo) ^ bar - 0xAA; i < (foo - bar) >> 4; foo += (qux & foo) >> 6) {
         qux++;
     }
 
@@ -14,5 +14,5 @@ int test() {
 
 void main() {
     volatile int res = test();
-    END_EXECUTION;
+    END_EXECUTION
 }

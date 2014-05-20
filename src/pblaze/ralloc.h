@@ -6,6 +6,8 @@ extern "C" {
 
 #include <stdio.h>
 
+#include "main.h"
+
 #include "SDCCsymt.h"
 #include "SDCCicode.h"
 #include "SDCCBBlock.h"
@@ -83,10 +85,10 @@ public:
         return !_self ? (_self = new Memory()) : _self;
     }
     MemoryCell *occupy(Operand *o, int index) {
-        for (MemoryCell &c : m_cells) {
-            if (c.isFree()) {
-                if (c.occupy(o, index))
-                    return &c;
+        for (int i = MEMORY_SIZE - 1; i >= 0; i--) {
+            if (m_cells[i].isFree()) {
+                if (m_cells[i].occupy(o, index))
+                    return &m_cells[i];
             }
         }
         throw "Ran out of static memory";
@@ -119,6 +121,7 @@ public:
     void functionStart();
     void functionEnd();
     void loadAddress(Operand *res, Operand *obj);
+    void insert(Operand *o, int pos, int offset);
     StackCell *contains(Operand *o, int index);
 private:
     static Stack *_self;

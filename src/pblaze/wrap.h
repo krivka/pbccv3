@@ -26,6 +26,8 @@ class MemoryCell;
 class Memory;
 class Bank;
 
+extern char nameBuf[256];
+
 template<typename T>
 class Set : public ::set {
 public:
@@ -290,6 +292,9 @@ public:
     int liveTo() {
         return OP_LIVETO((::operand*)this);
     }
+    SymLink *opSymType() {
+        return (SymLink*) OP_SYM_TYPE((::operand*)this);
+    }
     int liveFrom() {
         return OP_LIVEFROM(((::operand*)this));
     }
@@ -301,8 +306,10 @@ public:
             return getSymbol()->name;
         else if (getValue()->getName() && getValue()->getName()[0])
             return getValue()->getName();
-        else
-            return "(value)";
+        else {
+            sprintf(nameBuf, "%lu", getValue()->getUnsignedLong());
+            return nameBuf;
+        }
     }
 };
 

@@ -47,21 +47,31 @@ typedef void (*genFunc)(ICode *);
 void Function(ICode *ic) {
     Symbol *sym = ic->getLeft()->getSymbol();
     int regsUsed = 0;
-    if (0 == strcmp(sym->name, "main"))
+    Function::processNew(ic);
+    if (Function::isMain)
         Bank::choose(true);
     else
         Bank::choose(false);
-    Function::processNew(ic);
     // print the parameters
     emit << "\n; Function " << sym->name << ", arguments: [";
     Value *v = (Value*) ic->getLeft()->getSymbol()->getType()->funcAttrs.args;
+    bool full = false;
+    int stack = 0;
     while (v) {
         emit << v->sym->name;
-        if (regsUsed + v->getType()->getSize() < VAR_ARGS) {
+        if (!full && regsUsed + v->getType()->getSize() < ARG_REG_CNT) {
             emit << ":{";
             for (int i = regsUsed; i < regsUsed + v->getType()->getSize(); i++)
                 emit << Bank::current()->regs()[i].getName() << ",";
             emit << "}";
+            full = true;
+        }
+        else if (v->sym->reqv) {
+            Operand *o = (Operand *) v->sym->reqv;
+            for (int i = 0; i < o->getType()->getSize(); i++) {
+                Stack::instance()->insert(o, stack, i);
+            }
+            stack += o->getType()->getSize();
         }
         emit << ",";
         regsUsed += v->getType()->getSize();
@@ -201,12 +211,14 @@ void Return(ICode *ic) {
             if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->getSymbol()->regs[Emitter::i]->sX == Emitter::i)
                 continue;
 
-            if (Bank::current()->contains(ic->getLeft(), Emitter::i)) {
+            if (ic->getLeft()->getSymbol()->regs[Emitter::i]) {
                 emit << I::Load(&Bank::current()->regs()[Emitter::i], left);
             }
             else {
-                if (left->isSymOp())
-                    emit << I::Fetch(&Bank::current()->regs()[Emitter::i], left);
+                if (left->isSymOp()) {
+                    Stack::instance()->fetchVariable(left, Emitter::i);
+                    emit << I::Fetch(&Bank::current()->regs()[Emitter::i], Bank::current()->currentStackPointer());
+                }
                 else
                     emit << I::Load(&Bank::current()->regs()[Emitter::i], left);
             }
@@ -441,22 +453,23 @@ void Add(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    if (*result != *left &&
-        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && result->liveTo() <= ic->getNext()->seq)) {
-        bool moved = false;
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
-                result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
-                result->getSymbol()->regs[Emitter::i]->m_oper = result;
-                left->getSymbol()->regs[Emitter::i] = nullptr;
-                moved = true;
+    if (*result != *left) {
+        if ((ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && left->liveTo() < ic->getNext()->seq)) {
+            bool moved = false;
+            for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+                if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
+                    result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
+                    result->getSymbol()->regs[Emitter::i]->m_oper = result;
+                    left->getSymbol()->regs[Emitter::i] = nullptr;
+                    moved = true;
+                }
+                else {
+                    emit << I::Load(result, left);
+                }
             }
-            else {
-                emit << I::Load(result, left);
-            }
+            if (moved)
+                emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(+)\n";
         }
-        if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(+)\n";
     }
     else {
         result = left;
@@ -471,22 +484,23 @@ void Sub(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    if (*result != *left &&
-        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && result->liveTo() <= ic->getNext()->seq)) {
-        bool moved = false;
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
-                result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
-                result->getSymbol()->regs[Emitter::i]->m_oper = result;
-                left->getSymbol()->regs[Emitter::i] = nullptr;
-                moved = true;
+    if (*result != *left) {
+        if ((ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && left->liveTo() < ic->getNext()->seq)) {
+            bool moved = false;
+            for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+                if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
+                    result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
+                    result->getSymbol()->regs[Emitter::i]->m_oper = result;
+                    left->getSymbol()->regs[Emitter::i] = nullptr;
+                    moved = true;
+                }
+                else {
+                    emit << I::Load(result, left);
+                }
             }
-            else {
-                emit << I::Load(result, left);
-            }
+            if (moved)
+                emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(-)\n";
         }
-        if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(-)\n";
     }
     else {
         result = left;
@@ -502,22 +516,23 @@ void Or(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    if (*result != *left &&
-        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && result->liveTo() <= ic->getNext()->seq)) {
-        bool moved = false;
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
-                result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
-                result->getSymbol()->regs[Emitter::i]->m_oper = result;
-                left->getSymbol()->regs[Emitter::i] = nullptr;
-                moved = true;
+    if (*result != *left) {
+        if ((ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && left->liveTo() < ic->getNext()->seq)) {
+            bool moved = false;
+            for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+                if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
+                    result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
+                    result->getSymbol()->regs[Emitter::i]->m_oper = result;
+                    left->getSymbol()->regs[Emitter::i] = nullptr;
+                    moved = true;
+                }
+                else {
+                    emit << I::Load(result, left);
+                }
             }
-            else {
-                emit << I::Load(result, left);
-            }
+            if (moved)
+                emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(|)\n";
         }
-        if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(|)\n";
     }
     else {
         result = left;
@@ -532,22 +547,23 @@ void Not(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    if (*result != *left &&
-        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && result->liveTo() <= ic->getNext()->seq)) {
-        bool moved = false;
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
-                result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
-                result->getSymbol()->regs[Emitter::i]->m_oper = result;
-                left->getSymbol()->regs[Emitter::i] = nullptr;
-                moved = true;
+    if (*result != *left) {
+        if ((ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && left->liveTo() < ic->getNext()->seq)) {
+            bool moved = false;
+            for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+                if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
+                    result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
+                    result->getSymbol()->regs[Emitter::i]->m_oper = result;
+                    left->getSymbol()->regs[Emitter::i] = nullptr;
+                    moved = true;
+                }
+                else {
+                    emit << I::Load(result, left);
+                }
             }
-            else {
-                emit << I::Load(result, left);
-            }
+            if (moved)
+                emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(~)\n";
         }
-        if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(~)\n";
     }
     else {
         result = left;
@@ -562,22 +578,23 @@ void And(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    if (*result != *left &&
-        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && result->liveTo() <= ic->getNext()->seq)) {
-        bool moved = false;
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
-                result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
-                result->getSymbol()->regs[Emitter::i]->m_oper = result;
-                left->getSymbol()->regs[Emitter::i] = nullptr;
-                moved = true;
+    if (*result != *left) {
+        if ((ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && left->liveTo() < ic->getNext()->seq)) {
+            bool moved = false;
+            for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+                if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
+                    result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
+                    result->getSymbol()->regs[Emitter::i]->m_oper = result;
+                    left->getSymbol()->regs[Emitter::i] = nullptr;
+                    moved = true;
+                }
+                else {
+                    emit << I::Load(result, left);
+                }
             }
-            else {
-                emit << I::Load(result, left);
-            }
+            if (moved)
+                emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(&)\n";
         }
-        if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(&)\n";
     }
     else {
         result = left;
@@ -592,29 +609,41 @@ void ShiftLeft(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    if (*result != *left &&
-        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && result->liveTo() <= ic->getNext()->seq)) {
-        bool moved = false;
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
-                result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
-                result->getSymbol()->regs[Emitter::i]->m_oper = result;
-                left->getSymbol()->regs[Emitter::i] = nullptr;
-                moved = true;
+    if (*result != *left) {
+        if ((ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && left->liveTo() < ic->getNext()->seq)) {
+            bool moved = false;
+            for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+                if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
+                    result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
+                    result->getSymbol()->regs[Emitter::i]->m_oper = result;
+                    left->getSymbol()->regs[Emitter::i] = nullptr;
+                    moved = true;
+                }
+                else {
+                    emit << I::Load(result, left);
+                }
             }
-            else {
-                emit << I::Load(result, left);
-            }
+            if (moved)
+                emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(<<)\n";
         }
-        if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(<<)\n";
     }
     else {
         result = left;
     }
+    Operand *tmpOp = (Operand *) newiTempOperand(right->getType(), 0);
+    Symbol *tmpLbl = (Symbol*) newiTempLabel("_shlLoop");
+    tmpLbl->key++;
+    tmpOp->getSymbol()->liveTo = ic->seq + 1;
+    Emitter::i = 0;
+    emit << I::Load(tmpOp, right);
+    emit << tmpLbl << ":\n";
     for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
         emit << I::ShiftLeft(result);
     }
+    Emitter::i = 0;
+    emit << I::Sub(tmpOp->getSymbol()->regs[0], (uint8_t) 1);
+    emit << I::Compare(tmpOp, (uint8_t) 0);
+    emit << I::Jump(tmpLbl, I::Jump::NZ);
 }
 
 void ShiftRight(ICode *ic) {
@@ -622,29 +651,41 @@ void ShiftRight(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    if (*result != *left &&
-        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && result->liveTo() <= ic->getNext()->seq)) {
-        bool moved = false;
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
-                result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
-                result->getSymbol()->regs[Emitter::i]->m_oper = result;
-                left->getSymbol()->regs[Emitter::i] = nullptr;
-                moved = true;
+    if (*result != *left) {
+        if ((ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && left->liveTo() < ic->getNext()->seq)) {
+            bool moved = false;
+            for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+                if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
+                    result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
+                    result->getSymbol()->regs[Emitter::i]->m_oper = result;
+                    left->getSymbol()->regs[Emitter::i] = nullptr;
+                    moved = true;
+                }
+                else {
+                    emit << I::Load(result, left);
+                }
             }
-            else {
-                emit << I::Load(result, left);
-            }
+            if (moved)
+                emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(>>)\n";
         }
-        if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(>>)\n";
     }
     else {
         result = left;
     }
-    for (Emitter::i = left->getType()->getSize() - 1; Emitter::i >= 0 ; Emitter::i--) {
+    Operand *tmpOp = (Operand *) newiTempOperand(right->getType(), 0);
+    Symbol *tmpLbl = (Symbol*) newiTempLabel("_shrLoop");
+    tmpLbl->key++;
+    tmpOp->getSymbol()->liveTo = ic->seq + 1;
+    Emitter::i = 0;
+    emit << I::Load(tmpOp, right);
+    emit << tmpLbl << ":\n";
+    for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
         emit << I::ShiftRight(result);
     }
+    Emitter::i = 0;
+    emit << I::Sub(tmpOp->getSymbol()->regs[0], (uint8_t) 1);
+    emit << I::Compare(tmpOp, (uint8_t) 0);
+    emit << I::Jump(tmpLbl, I::Jump::NZ);
 }
 
 void Xor(ICode *ic) {
@@ -652,22 +693,23 @@ void Xor(ICode *ic) {
     Operand *left = ic->getLeft();
     Operand *right = ic->getRight();
 
-    if (*result != *left &&
-        !(ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && result->liveTo() <= ic->getNext()->seq)) {
-        bool moved = false;
-        for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
-            if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
-                result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
-                result->getSymbol()->regs[Emitter::i]->m_oper = result;
-                left->getSymbol()->regs[Emitter::i] = nullptr;
-                moved = true;
+    if (*result != *left) {
+        if ((ic->getNext()->op == '=' && *ic->getNext()->getResult() == *left && *ic->getNext()->getRight() == *result && left->liveTo() < ic->getNext()->seq)) {
+            bool moved = false;
+            for (Emitter::i = 0; Emitter::i < left->getType()->getSize(); Emitter::i++) {
+                if (left->isSymOp() && left->getSymbol()->regs[Emitter::i] && left->liveTo() <= ic->seq) {
+                    result->getSymbol()->regs[Emitter::i] = left->getSymbol()->regs[Emitter::i];
+                    result->getSymbol()->regs[Emitter::i]->m_oper = result;
+                    left->getSymbol()->regs[Emitter::i] = nullptr;
+                    moved = true;
+                }
+                else {
+                    emit << I::Load(result, left);
+                }
             }
-            else {
-                emit << I::Load(result, left);
-            }
+            if (moved)
+                emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(^)\n";
         }
-        if (moved)
-            emit << "\t\t\t\t\t\t; " << result->friendlyName() << "=" << left->friendlyName() << "(^)\n";
     }
     else {
         result = left;
@@ -763,6 +805,7 @@ std::map<unsigned int, genFunc> map {
     { '-', Sub },
     { '|', Or },
     { '!', Not },
+    { 126, Not },
     { BITWISEAND, And },
     { '^', Xor },
     { RIGHT_OP, ShiftRight },
@@ -793,10 +836,44 @@ ICode *stepIC() {
     return previous;
 }
 
+static void findAndAllocGlobals(ICode *lic)
+{
+    ICode *ic;
+    Operand *op;
+
+    if (!lic)
+        return;
+
+    for (ic = lic; ic; ic = ic->getNext()) {
+        if (!ic->skipNoOp()) {
+
+            if (ic->getLeft() && ic->getLeft()->isOpGlobal()) {
+                op = ic->getLeft();
+                if (!op->opSymType()->isFunc() && !Memory::get()->containsStatic(op, 0))
+                    Memory::get()->allocateGlobal(op);
+            }
+
+            if (ic->getRight() && ic->getRight()->isOpGlobal()) {
+                op = ic->getRight();
+                if (!op->opSymType()->isFunc() && !Memory::get()->containsStatic(op, 0))
+                    Memory::get()->allocateGlobal(op);
+            }
+
+            if (ic->getResult() && ic->getResult()->isOpGlobal()) {
+                op = ic->getResult();
+                if (!op->opSymType()->isFunc() && !Memory::get()->containsStatic(op, 0))
+                    Memory::get()->allocateGlobal(op);
+            }
+        }
+    }
+
+}
+
 void genPBlazeCode(EbbIndex *ebbi) {
     EbBlock **ebbs = (EbBlock**) ebbi->dfOrder;
     int count = ebbi->getCount();
     currentIC = ICode::fromEbBlock(ebbs, count);
+    findAndAllocGlobals(currentIC);
 
     while (currentIC) {
         stepIC();
