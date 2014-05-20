@@ -5,7 +5,7 @@ int test() {
     volatile char foo = 0xFF, bar = 0xAA;
     volatile int qux = 0;
 
-    for (i = (~foo) ^ bar - 0xAA; i < (foo - bar) >> 4; foo += (qux & foo) >> 6) {
+    for (i = 0; i < (foo - bar); foo += 0x1) {
         qux++;
     }
 

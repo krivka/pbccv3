@@ -11,3 +11,7 @@ Decompress the whole SDCC tree directly into the repository, to have SDCC's src 
 Then run glue.sh with SDCC_HOME environment variable set to the repository root.
 
 After that, it's just good old autoconf; ./configure; make 
+
+Tests need to have the tools compiled in test/src/tools (Makefile)
+
+Then, from the test/src folder, run ./check
