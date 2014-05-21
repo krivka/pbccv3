@@ -1,4 +1,4 @@
 stored_somewhere;
 stored_there;
-bankA = { 0xAB };
+bankA = { 0x55 };
 bankB;
